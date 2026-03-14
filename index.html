@@ -61,7 +61,7 @@ option{background:#0D1626;color:#E2E8F0;}
 const{useState,useEffect,useRef,useMemo,useCallback}=React;
 
 const GAS_URL="https://script.google.com/macros/s/AKfycbw6VHVu6p6OibOdFGGlfNmtdymDm1Ek0TnOTDudeFCTzWY9VmojKDLlpFYHaeLFIZa9xw/exec";
-const REFRESH_INTERVAL=30000;
+const REFRESH_INTERVAL=120000;// 2 minutos — evita parpadeo constante
 
 /* ─── PALETA ─── */
 // Paletas de color — oscuro y claro
@@ -733,6 +733,7 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
     if(f.checkin>=f.checkout)return setErr("El check-out debe ser después del check-in");
     if(totalPagantes<1)return setErr("Debe haber al menos 1 persona");
     if(totalPagantes>capMax)return setErr(`⛔ Capacidad máxima de esta habitación: ${capMax} personas`);
+    if(parseInt(f.anticipo)>total)return setErr("⛔ El anticipo no puede superar el total de "+fmt(total));
       // Verificar conflicto — busca por hab exacto Y por hab corrupto (⚠️) comparando fechas+precio
       const normD=s=>{if(!s)return"";const st=String(s).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(st))return st;if(st.includes("T")){try{return dateKey(new Date(st));}catch{}}return st;};
       const fHab=String(f.hab||"").trim();
@@ -941,6 +942,23 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
                 <input type="number" min="0" max={total} value={f.anticipo||0}
                   onChange={e=>setF(p=>({...p,anticipo:Math.min(total,Math.max(0,parseInt(e.target.value)||0))}))}
                   style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 10px",color:C.text,fontSize:12,outline:"none",width:"100%"}}/>
+                {/* Botones rápidos de pago */}
+                <div style={{display:"flex",gap:5,marginTop:6}}>
+                  {[
+                    {l:"💰 Pago total",v:total,c:C.green},
+                    {l:"50%",v:Math.round(total*0.5),c:C.teal},
+                    {l:"30%",v:Math.round(total*0.3),c:C.accent},
+                    {l:"Sin anticipo",v:0,c:C.muted},
+                  ].map(({l,v,c})=>(
+                    <button key={l} type="button" onClick={()=>setF(p=>({...p,anticipo:v}))}
+                      style={{flex:1,padding:"5px 2px",borderRadius:6,border:`1.5px solid ${(parseInt(f.anticipo)||0)===v?c:C.border}`,
+                        background:(parseInt(f.anticipo)||0)===v?c+"22":"transparent",
+                        color:(parseInt(f.anticipo)||0)===v?c:C.muted,
+                        fontSize:9,fontWeight:700,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"}}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             {hab&&(
@@ -1897,7 +1915,8 @@ function App(){
 
   const cargarDatos=useCallback(async(silent=false)=>{
     if(!gasConfigured())return;
-    if(!silent)setLoading(true);setSyncStatus("syncing");
+    if(!silent){setLoading(true);setSyncStatus("syncing");}
+    // Silent refresh: no mostrar "Sincronizando..." para evitar parpadeo
     try{
       const res=await gasGet({action:"getAll"});
       if(res.status==="ok"){
@@ -1950,7 +1969,13 @@ function App(){
     finally{setLoading(false);}
   },[]);
 
-  useEffect(()=>{if(user&&gasConfigured()){cargarDatos(false);intervalRef.current=setInterval(()=>cargarDatos(true),REFRESH_INTERVAL);}return()=>clearInterval(intervalRef.current);},[user,cargarDatos]);
+  useEffect(()=>{
+    if(user&&gasConfigured()){
+      cargarDatos(false);
+      intervalRef.current=setInterval(()=>cargarDatos(true),REFRESH_INTERVAL);
+    }
+    return()=>clearInterval(intervalRef.current);
+  },[user]);// eslint-disable-line — cargarDatos is stable
 
   /* ── CRUD Zonas Húmedas ── */
   const saveRes=async(data)=>{
