@@ -1,0 +1,42 @@
+{
+  "name": "Hotel Cala · Sistema de Gestión",
+  "short_name": "Hotel Cala",
+  "description": "Sistema integral de gestión para Hotel Cala",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060C18",
+  "theme_color": "#0EA5E9",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Check-in",
+      "short_name": "Check-in",
+      "description": "Registrar nuevo huésped",
+      "url": "/?vista=habitaciones",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver resumen del hotel",
+      "url": "/?vista=dashboard",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
