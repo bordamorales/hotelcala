@@ -209,15 +209,17 @@ async function gasPost(body){
 const Tag=({text,color,size=10})=>(
   <span style={{background:color+"25",color,border:`1px solid ${color}40`,borderRadius:5,padding:"2px 8px",fontSize:size,fontWeight:700,letterSpacing:.3,whiteSpace:"nowrap"}}>{text}</span>
 );
-const Inp=({label,value,onChange,type="text",placeholder="",options=null,col=null})=>(
+const Inp=({label,value,onChange,type="text",placeholder="",options=null,col=null,upper=false})=>(
   <div style={{display:"flex",flexDirection:"column",gap:4}}>
     {label&&<label style={{color:col||C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>{label}</label>}
     {options
       ?<select value={value} onChange={e=>onChange(e.target.value)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 10px",color:C.text,fontSize:12,outline:"none",width:"100%"}}>
          {options.map(o=><option key={o.v??o} value={o.v??o} disabled={o.disabled}>{o.l??o}</option>)}
        </select>
-      :<input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
-         style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 10px",color:C.text,fontSize:12,outline:"none",width:"100%"}}/>
+      :<input type={type} value={value}
+         onChange={e=>onChange(upper?e.target.value.toUpperCase():e.target.value)}
+         placeholder={placeholder}
+         style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 10px",color:C.text,fontSize:12,outline:"none",width:"100%",textTransform:upper?"uppercase":"none"}}/>
     }
   </div>
 );
@@ -651,8 +653,8 @@ function ModalHuesped({onSave,onClose,editData,saving}){
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
           <Inp label="CÉDULA / DOCUMENTO" value={f.cedula} onChange={v=>setF(p=>({...p,cedula:v}))} placeholder="1098765432"/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <Inp label="NOMBRE" value={f.nombre} onChange={v=>setF(p=>({...p,nombre:v}))} placeholder="Carlos"/>
-            <Inp label="APELLIDOS" value={f.apellidos} onChange={v=>setF(p=>({...p,apellidos:v}))} placeholder="Ruiz Mendoza"/>
+            <Inp label="NOMBRE" value={f.nombre} onChange={v=>setF(p=>({...p,nombre:v}))} placeholder="CARLOS" upper/>
+            <Inp label="APELLIDOS" value={f.apellidos} onChange={v=>setF(p=>({...p,apellidos:v}))} placeholder="RUIZ MENDOZA" upper/>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Inp label="TELÉFONO" value={f.telefono} onChange={v=>setF(p=>({...p,telefono:v}))} placeholder="3101234567"/>
@@ -684,6 +686,7 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
   const[err,setErr]=useState("");
   const[cedulaBusq,setCedulaBusq]=useState(()=>{if(editData){const h=huespedes.find(x=>x.id===editData.huesped_id);return h?.cedula||"";}return "";});
   const[sugerencias,setSugerencias]=useState([]);
+  const[descPct,setDescPct]=useState(editData?.descuento_pct||0);// % descuento
   const hab=habitaciones.find(h=>h.num===f.hab);
   const huesped=huespedes.find(h=>h.id===f.huesped_id);
 
@@ -709,7 +712,9 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
   const capMax=hab?hab.capacidad:99;
   // Total personas que pagan = adultos + niños + mascotas (todos al mismo precio por persona)
   const totalPagantes=(parseInt(f.adultos)||1)+(parseInt(f.ninos)||0)+(parseInt(f.mascotas)||0);
-  const total=precio*totalPagantes*noches;
+  const totalBruto=precio*totalPagantes*noches;
+  const descValor=Math.round(totalBruto*(descPct/100));
+  const total=totalBruto-descValor;
   const capacidadSuperada=totalPagantes>capMax;
   // Badge temporada visible en el modal
 
@@ -762,7 +767,7 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
     setErr("");
     const anticipo=parseInt(f.anticipo)||0;
     const saldo=Math.max(0,total-anticipo);
-    onSave({...f,adultos:parseInt(f.adultos)||1,ninos:parseInt(f.ninos)||0,mascotas:parseInt(f.mascotas)||0,precio_noche:precio,precio_base:precioBase,temporada:tempActiva?.nombre||'',temporada_pct:pctTemp,total_pagantes:totalPagantes,total,noches,anticipo,saldo});
+    onSave({...f,adultos:parseInt(f.adultos)||1,ninos:parseInt(f.ninos)||0,mascotas:parseInt(f.mascotas)||0,precio_noche:precio,precio_base:precioBase,temporada:tempActiva?.nombre||'',temporada_pct:pctTemp,descuento_pct:descPct,descuento_valor:descValor,total_pagantes:totalPagantes,total,noches,anticipo,saldo});
   };
 
   return(
@@ -978,6 +983,32 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
               </div>
             )}
           </div>
+
+          {/* Descuento */}
+          {hab&&(
+            <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${descPct>0?C.pink:C.border}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:descPct>0?10:0}}>
+                <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>🏷️ DESCUENTO</div>
+                <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                  {[0,5,10,15,20,25,30].map(pct=>(
+                    <button key={pct} type="button" onClick={()=>setDescPct(pct)}
+                      style={{padding:"3px 8px",borderRadius:5,border:`1.5px solid ${descPct===pct?(pct===0?C.muted:C.pink):C.border}`,
+                        background:descPct===pct?(pct===0?"transparent":C.pink+"22"):"transparent",
+                        color:descPct===pct?(pct===0?C.muted:C.pink):C.muted,
+                        fontSize:10,fontWeight:700,cursor:"pointer",transition:"all .15s"}}>
+                      {pct===0?"Sin desc.":pct+"%"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {descPct>0&&(
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:C.pink+"12",borderRadius:7,padding:"7px 10px"}}>
+                  <span style={{fontSize:11,color:C.pink,fontWeight:700}}>🏷️ Descuento {descPct}% aplicado</span>
+                  <span style={{fontSize:13,color:C.pink,fontWeight:800}}>− {fmt(descValor)}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Resumen de cobro detallado */}
           {hab&&(
