@@ -3092,31 +3092,30 @@ function App(){
             </div>
             {/* Resumen ingresos zonas */}
             {(()=>{
-              const ext=reservas.filter(r=>r.tipo!=="huesped");
-              const totalExt=ext.reduce((a,r)=>a+(parseInt(r.total)||0),0);
-              const cobrado=ext.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.total)||0),0);
-              const pendiente=ext.filter(r=>r.pago==="pendiente").reduce((a,r)=>a+(parseInt(r.total)||0),0);
-              const porMetodo=["efectivo","tarjeta","transferencia","cortesia"].map(pm=>({
-                pm,label:{efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía"}[pm],
-                color:{efectivo:C.green,tarjeta:C.accent2,transferencia:C.accent,cortesia:C.teal}[pm],
-                tot:ext.filter(r=>r.pago===pm).reduce((a,r)=>a+(parseInt(r.total)||0),0),
-                cnt:ext.filter(r=>r.pago===pm).length
-              })).filter(x=>x.cnt>0);
+              const extR=reservas.filter(r=>r.tipo!=="huesped");
+              const cobradoZ=extR.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.total)||0),0);
+              const pendienteZ=extR.filter(r=>r.pago==="pendiente").reduce((a,r)=>a+(parseInt(r.total)||0),0);
+              const PAGO_ZONA=[
+                {pm:"efectivo",lbl:"💵 Efectivo",col:C.green},
+                {pm:"tarjeta",lbl:"💳 Tarjeta",col:C.accent2},
+                {pm:"transferencia",lbl:"🏦 Transferencia",col:C.accent},
+                {pm:"cortesia",lbl:"🎁 Cortesía",col:C.teal},
+              ].map(x=>({...x,tot:extR.filter(r=>r.pago===x.pm).reduce((a,r)=>a+(parseInt(r.total)||0),0),num:extR.filter(r=>r.pago===x.pm).length})).filter(x=>x.num>0);
               return(
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginBottom:11}}>
                   <div style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${C.green}25`}}>
                     <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>💰 TOTAL COBRADO</div>
-                    <div style={{color:C.green,fontWeight:800,fontSize:16}}>{fmt(cobrado)}</div>
+                    <div style={{color:C.green,fontWeight:800,fontSize:16}}>{fmt(cobradoZ)}</div>
                   </div>
                   <div style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${C.red}25`}}>
                     <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>⏳ PENDIENTE</div>
-                    <div style={{color:pendiente>0?C.red:C.muted,fontWeight:800,fontSize:16}}>{fmt(pendiente)}</div>
+                    <div style={{color:pendienteZ>0?C.red:C.muted,fontWeight:800,fontSize:16}}>{fmt(pendienteZ)}</div>
                   </div>
-                  {porMetodo.map(({pm,label,color,tot,cnt})=>(
-                    <div key={pm} style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${color}25`}}>
-                      <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>{label}</div>
-                      <div style={{color,fontWeight:800,fontSize:15}}>{fmt(tot)}</div>
-                      <div style={{color:C.dim,fontSize:9,marginTop:2}}>{cnt} reserva{cnt!==1?"s":""}</div>
+                  {PAGO_ZONA.map(x=>(
+                    <div key={x.pm} style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${x.col}25`}}>
+                      <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>{x.lbl}</div>
+                      <div style={{color:x.col,fontWeight:800,fontSize:15}}>{fmt(x.tot)}</div>
+                      <div style={{color:C.dim,fontSize:9,marginTop:2}}>{x.num} reserva{x.num!==1?"s":""}</div>
                     </div>
                   ))}
                 </div>
