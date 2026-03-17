@@ -551,7 +551,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 {f.tipo!=="huesped"&&<Inp label="MÉTODO DE PAGO" value={f.pago} onChange={v=>setF(p=>({...p,pago:v}))}
-                  options={[{v:"efectivo",l:"💵 Efectivo"},{v:"tarjeta",l:"💳 Tarjeta"},{v:"pendiente",l:"⏳ Pendiente"}]}/>}
+                  options={[{v:"efectivo",l:"💵 Efectivo"},{v:"tarjeta",l:"💳 Tarjeta"},{v:"transferencia",l:"🏦 Transferencia"},{v:"cortesia",l:"🎁 Cortesía"},{v:"pendiente",l:"⏳ Pendiente"}]}/>}
                 {f.tipo==="huesped"&&<div style={{background:`${C.teal}15`,border:`1px solid ${C.teal}44`,borderRadius:7,padding:"8px 12px",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:14}}>🏨</span>
                   <div><div style={{color:C.teal,fontWeight:700,fontSize:11}}>Sin cobro</div><div style={{color:C.muted,fontSize:9}}>Beneficio huésped</div></div>
@@ -2908,6 +2908,39 @@ function App(){
               ))}
               <button onClick={()=>{setEdit(null);setModal(true);}} style={{background:`linear-gradient(135deg,${C.accent},${C.accent2})`,border:"none",borderRadius:6,padding:"6px 12px",color:"white",fontWeight:700,cursor:"pointer",fontSize:11}}>+ Nueva</button>
             </div>
+            {/* Resumen ingresos zonas */}
+            {(()=>{
+              const ext=reservas.filter(r=>r.tipo!=="huesped");
+              const totalExt=ext.reduce((a,r)=>a+(parseInt(r.total)||0),0);
+              const cobrado=ext.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.total)||0),0);
+              const pendiente=ext.filter(r=>r.pago==="pendiente").reduce((a,r)=>a+(parseInt(r.total)||0),0);
+              const porMetodo=["efectivo","tarjeta","transferencia","cortesia"].map(pm=>({
+                pm,label:{efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía"}[pm],
+                color:{efectivo:C.green,tarjeta:C.accent2,transferencia:C.accent,cortesia:C.teal}[pm],
+                tot:ext.filter(r=>r.pago===pm).reduce((a,r)=>a+(parseInt(r.total)||0),0),
+                cnt:ext.filter(r=>r.pago===pm).length
+              })).filter(x=>x.cnt>0);
+              return(
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8,marginBottom:11}}>
+                  <div style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${C.green}25`}}>
+                    <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>💰 TOTAL COBRADO</div>
+                    <div style={{color:C.green,fontWeight:800,fontSize:16}}>{fmt(cobrado)}</div>
+                  </div>
+                  <div style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${C.red}25`}}>
+                    <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>⏳ PENDIENTE</div>
+                    <div style={{color:pendiente>0?C.red:C.muted,fontWeight:800,fontSize:16}}>{fmt(pendiente)}</div>
+                  </div>
+                  {porMetodo.map(({pm,label,color,tot,cnt})=>(
+                    <div key={pm} style={{background:C.card,borderRadius:9,padding:"10px 13px",border:`1px solid ${color}25`}}>
+                      <div style={{color:C.muted,fontSize:9,fontWeight:700,marginBottom:3}}>{label}</div>
+                      <div style={{color,fontWeight:800,fontSize:15}}>{fmt(tot)}</div>
+                      <div style={{color:C.dim,fontSize:9,marginTop:2}}>{cnt} reserva{cnt!==1?"s":""}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
             <div style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,overflow:"hidden"}}>
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
