@@ -379,16 +379,6 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
   const[err,setErr]=useState("");const[step,setStep]=useState(editData?2:1);
   const[cedulaSearch,setCedulaSearch]=useState(init.cedula||"");
   const[huespadFound,setHuespadFound]=useState(null);
-  const[acompZ,setAcompZ]=useState(()=>{try{return editData?.acompanantes?JSON.parse(editData.acompanantes):[];}catch{return[];}});
-  const[descPctZ,setDescPctZ]=useState(editData?.descuento_pct||0);
-  const addAcompZ=()=>setAcompZ(p=>[...p,{nombre:"",tipo_doc:"CC",documento:"",fecha_nac:""}]);
-  const updAcompZ=(i,k,v)=>setAcompZ(p=>p.map((a,idx)=>idx===i?{...a,[k]:k==="nombre"?v.toUpperCase():v}:a));
-  const delAcompZ=(i)=>setAcompZ(p=>p.filter((_,idx)=>idx!==i));
-  const[acompZ,setAcompZ]=useState(()=>{try{return editData?.acompanantes?JSON.parse(editData.acompanantes):[];}catch{return[];}});
-  const[descPctZ,setDescPctZ]=useState(editData?.descuento_pct||0);
-  const addAcompZ=()=>setAcompZ(p=>[...p,{nombre:"",tipo_doc:"CC",documento:"",fecha_nac:""}]);
-  const updAcompZ=(i,k,v)=>setAcompZ(p=>p.map((a,idx)=>idx===i?{...a,[k]:k==="nombre"?v.toUpperCase():v}:a));
-  const delAcompZ=(i)=>setAcompZ(p=>p.filter((_,idx)=>idx!==i));
 
   const sv=svc[f.servicio]||Object.values(svc)[0];if(!sv)return null;
   const totalPers=(f.adultos||0)+(f.ninos||0);
@@ -436,7 +426,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
     if(libres<totalPers)return setErr(`⛔ Sin cupos: ${libres} lugar${libres!==1?"es":""} disponibles`);
     setErr("");
     const pagoFinal=f.tipo==="huesped"?"cortesia":f.pago;
-    onSave({...f,dur:60,adultos:parseInt(f.adultos||0),ninos:parseInt(f.ninos||0),total,descuento_pct:descPctZ,descuento_valor:descValorZ,acompanantes:JSON.stringify(acompZ),pago:pagoFinal});
+    onSave({...f,dur:60,adultos:parseInt(f.adultos||0),ninos:parseInt(f.ninos||0),total,descuento_pct:descPctZ,descuento_valor:descValorZ,acompanantes:JSON.stringify(acomp),pago:pagoFinal});
   };
 
   return(
@@ -573,19 +563,19 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
               </div>
               {/* Acompañantes */}
               <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acompZ.length?10:0}}>
-                  <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acompZ.length})</div>
-                  <button type="button" onClick={addAcompZ}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acomp.length?10:0}}>
+                  <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acomp.length})</div>
+                  <button type="button" onClick={addAcomp}
                     style={{background:C.accent+"18",border:`1px solid ${C.accent}44`,borderRadius:6,padding:"4px 10px",color:C.accent,fontSize:10,fontWeight:700,cursor:"pointer"}}>
                     + Agregar
                   </button>
                 </div>
-                {acompZ.map((a,i)=>(
+                {acomp.map((a,i)=>(
                   <div key={i} style={{background:C.card,borderRadius:8,padding:"10px 10px 8px",marginBottom:8,border:`1px solid ${C.border}`}}>
                     <div style={{display:"grid",gridTemplateColumns:"110px 90px 1fr 28px",gap:6,marginBottom:6,alignItems:"end"}}>
                       <div>
                         {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
-                        <select value={a.tipo_doc} onChange={e=>updAcompZ(i,"tipo_doc",e.target.value)}
+                        <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%"}}>
                           <option value="CC">🪪 Cédula</option>
                           <option value="TI">📋 T.Identidad</option>
@@ -594,23 +584,23 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
                       </div>
                       <div>
                         {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>No. DOC.</label>}
-                        <input value={a.documento||""} onChange={e=>updAcompZ(i,"documento",e.target.value)}
+                        <input value={a.documento||""} onChange={e=>updAcomp(i,"documento",e.target.value)}
                           placeholder="123456"
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%"}}/>
                       </div>
                       <div>
                         {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
-                        <input value={a.nombre} onChange={e=>updAcompZ(i,"nombre",e.target.value)}
+                        <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
                           placeholder="NOMBRE"
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%",textTransform:"uppercase"}}/>
                       </div>
-                      <button type="button" onClick={()=>delAcompZ(i)}
+                      <button type="button" onClick={()=>delAcomp(i)}
                         style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",marginTop:i===0?14:0}}>×</button>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"150px 1fr",gap:6,alignItems:"center"}}>
                       <div>
                         <label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>FECHA DE NACIMIENTO</label>
-                        <input type="date" value={a.fecha_nac||""} onChange={e=>updAcompZ(i,"fecha_nac",e.target.value)}
+                        <input type="date" value={a.fecha_nac||""} onChange={e=>updAcomp(i,"fecha_nac",e.target.value)}
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%"}}/>
                       </div>
                       {a.fecha_nac&&(()=>{
@@ -623,7 +613,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
                     </div>
                   </div>
                 ))}
-                {acompZ.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes</div>}
+                {acomp.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes</div>}
               </div>
 
               {/* Descuento */}
@@ -652,19 +642,19 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
 
               {/* Acompañantes */}
               <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acompZ.length?10:0}}>
-                  <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acompZ.length})</div>
-                  <button type="button" onClick={addAcompZ}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acomp.length?10:0}}>
+                  <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acomp.length})</div>
+                  <button type="button" onClick={addAcomp}
                     style={{background:C.accent+"18",border:`1px solid ${C.accent}44`,borderRadius:6,padding:"4px 10px",color:C.accent,fontSize:10,fontWeight:700,cursor:"pointer"}}>
                     + Agregar
                   </button>
                 </div>
-                {acompZ.map((a,i)=>(
+                {acomp.map((a,i)=>(
                   <div key={i} style={{background:C.card,borderRadius:8,padding:"10px 10px 8px",marginBottom:8,border:`1px solid ${C.border}`}}>
                     <div style={{display:"grid",gridTemplateColumns:"110px 100px 1fr 28px",gap:7,marginBottom:7,alignItems:"end"}}>
                       <div>
                         {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
-                        <select value={a.tipo_doc} onChange={e=>updAcompZ(i,"tipo_doc",e.target.value)}
+                        <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:11,outline:"none",width:"100%"}}>
                           <option value="CC">🪪 Cédula</option>
                           <option value="TI">📋 T. Identidad</option>
@@ -673,23 +663,23 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
                       </div>
                       <div>
                         {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>No. DOCUMENTO</label>}
-                        <input value={a.documento||""} onChange={e=>updAcompZ(i,"documento",e.target.value)}
+                        <input value={a.documento||""} onChange={e=>updAcomp(i,"documento",e.target.value)}
                           placeholder="123456789"
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}/>
                       </div>
                       <div>
                         {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
-                        <input value={a.nombre} onChange={e=>updAcompZ(i,"nombre",e.target.value)}
+                        <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
                           placeholder="NOMBRE ACOMPAÑANTE"
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%",textTransform:"uppercase"}}/>
                       </div>
-                      <button type="button" onClick={()=>delAcompZ(i)}
+                      <button type="button" onClick={()=>delAcomp(i)}
                         style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",marginTop:i===0?14:0}}>×</button>
                     </div>
                     <div style={{display:"grid",gridTemplateColumns:"160px 1fr",gap:7,alignItems:"end"}}>
                       <div>
                         <label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>FECHA DE NACIMIENTO</label>
-                        <input type="date" value={a.fecha_nac||""} onChange={e=>updAcompZ(i,"fecha_nac",e.target.value)}
+                        <input type="date" value={a.fecha_nac||""} onChange={e=>updAcomp(i,"fecha_nac",e.target.value)}
                           style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}/>
                       </div>
                       {a.fecha_nac&&(()=>{
@@ -702,7 +692,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
                     </div>
                   </div>
                 ))}
-                {acompZ.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes registrados</div>}
+                {acomp.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes registrados</div>}
               </div>
 
               {/* Descuento — solo para externos */}
@@ -876,15 +866,7 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
   const[acomp,setAcomp]=useState(()=>{
     try{return editData?.acompanantes?JSON.parse(editData.acompanantes):[];}catch{return [];}
   });
-  const addAcomp=()=>{
-    // 1 titular + acompañantes no puede superar capacidad de la habitación
-    const maxAcomp=capMax-1;// -1 por el titular
-    if(acomp.length>=maxAcomp){
-      alert(`⛔ Esta habitación tiene capacidad para ${capMax} personas. Ya tienes el titular + ${acomp.length} acompañante${acomp.length>1?"s":""}.`);
-      return;
-    }
-    setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC",documento:"",fecha_nac:""}]);
-  };
+  const addAcomp=()=>setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC",documento:"",fecha_nac:""}]);
   const updAcomp=(i,k,v)=>setAcomp(p=>p.map((a,idx)=>idx===i?{...a,[k]:k==="nombre"?v.toUpperCase():v}:a));
   const delAcomp=(i)=>setAcomp(p=>p.filter((_,idx)=>idx!==i));
   const hab=habitaciones.find(h=>h.num===f.hab);
@@ -1622,7 +1604,7 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       },0);
       const cnt=resHabF.filter(r=>r.pago===pm).length;
       return{pm,tot,cnt};
-    }).filter(x=>x.cnt>0);
+    }).filter(x=>x.num>0);
     // Total descuentos aplicados
     const totalDescuentos=resHabF.reduce((a,r)=>a+(parseInt(r.descuento_valor)||0),0);
     // Logo
@@ -1942,21 +1924,21 @@ function Login({onLogin}){
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 70% 40% at 50% 0%,#0EA5E920 0%,transparent 55%)",pointerEvents:"none"}}/>
       <div style={{background:C.surface,borderRadius:18,padding:"38px 32px",width:"100%",maxWidth:380,border:`1px solid ${C.border}`,boxShadow:"0 40px 80px #00000090",position:"relative",zIndex:1,animation:"fadeUp .3s ease"}}>
-        {(()=>{
+        {React.createElement(()=>{
           const _logo=localStorage.getItem("hotelcala_logo")||"";
           const _nombre=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
           return(
             <div style={{textAlign:"center",marginBottom:28}}>
               {_logo
-                ?<img src={_logo} alt="logo" style={{width:72,height:72,borderRadius:12,objectFit:"cover",margin:"0 auto 10px",display:"block",border:`2px solid ${C.border}`}}/>
+                ?<img src={_logo} alt="logo" style={{width:72,height:72,borderRadius:12,objectFit:"cover",margin:"0 auto 10px",display:"block",border:"2px solid "+C.border}}/>
                 :<div style={{fontSize:40,marginBottom:9}}>🌊</div>
               }
-              <div style={{fontSize:22,fontWeight:900,letterSpacing:2,background:`linear-gradient(135deg,${C.accent},${C.accent2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{_nombre}</div>
+              <div style={{fontSize:22,fontWeight:900,letterSpacing:2,background:"linear-gradient(135deg,"+C.accent+","+C.accent2+")",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{_nombre}</div>
               <div style={{color:C.muted,fontSize:9,marginTop:4,letterSpacing:2}}>SISTEMA DE GESTIÓN</div>
-              {!gasConfigured()&&<div style={{marginTop:10,background:"#F59E0B15",border:"1px solid #F59E0B40",borderRadius:7,padding:"6px 10px",fontSize:10,color:C.yellow}}>⚠️ Modo demo — sin Google Sheets</div>}
+              {!gasConfigured()&&<div style={{marginTop:10,background:"#F59E0B15",border:"1px solid #F59E0B40",borderRadius:7,padding:"6px 10px",fontSize:10,color:C.yellow}}>⚠️ Modo demo</div>}
             </div>
           );
-        })()}
+        })}
         <div style={{display:"flex",flexDirection:"column",gap:11}}>
           <Inp label="USUARIO" value={u} onChange={setU} placeholder="Ingresa tu usuario"/>
           <Inp label="CONTRASEÑA" value={p} onChange={setP} type="password" placeholder="••••••••"/>
