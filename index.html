@@ -633,7 +633,7 @@ function ModalDel({reserva,onOk,onClose,svc,saving,esHab=false}){
    MODAL HUÉSPED
 ══════════════════════════════════════════ */
 function ModalHuesped({onSave,onClose,editData,saving}){
-  const init=editData??{cedula:"",nombre:"",apellidos:"",telefono:"",correo:""};
+  const init=editData??{cedula:"",tipo_doc:"CC",nombre:"",apellidos:"",telefono:"",correo:""};
   const[f,setF]=useState({...init});
   const[err,setErr]=useState("");
   const save=()=>{
@@ -651,7 +651,11 @@ function ModalHuesped({onSave,onClose,editData,saving}){
           <button onClick={onClose} style={{background:C.border,border:"none",color:C.subtle,borderRadius:6,width:26,height:26,cursor:"pointer",fontSize:15}}>×</button>
         </div>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
-          <Inp label="CÉDULA / DOCUMENTO" value={f.cedula} onChange={v=>setF(p=>({...p,cedula:v}))} placeholder="1098765432"/>
+          <div style={{display:"grid",gridTemplateColumns:"140px 1fr",gap:10}}>
+            <Inp label="TIPO DOC." value={f.tipo_doc||"CC"} onChange={v=>setF(p=>({...p,tipo_doc:v}))}
+              options={[{v:"CC",l:"🪪 Cédula"},{v:"TI",l:"📋 Tarjeta Identidad"},{v:"CE",l:"🌐 Cédula Extranjería"}]}/>
+            <Inp label="NÚMERO DE DOCUMENTO" value={f.cedula} onChange={v=>setF(p=>({...p,cedula:v}))} placeholder="1098765432"/>
+          </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Inp label="NOMBRE" value={f.nombre} onChange={v=>setF(p=>({...p,nombre:v}))} placeholder="CARLOS" upper/>
             <Inp label="APELLIDOS" value={f.apellidos} onChange={v=>setF(p=>({...p,apellidos:v}))} placeholder="RUIZ MENDOZA" upper/>
@@ -686,7 +690,13 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
   const[err,setErr]=useState("");
   const[cedulaBusq,setCedulaBusq]=useState(()=>{if(editData){const h=huespedes.find(x=>x.id===editData.huesped_id);return h?.cedula||"";}return "";});
   const[sugerencias,setSugerencias]=useState([]);
-  const[descPct,setDescPct]=useState(editData?.descuento_pct||0);// % descuento
+  const[descPct,setDescPct]=useState(editData?.descuento_pct||0);
+  const[acomp,setAcomp]=useState(()=>{
+    try{return editData?.acompanantes?JSON.parse(editData.acompanantes):[];}catch{return [];}
+  });
+  const addAcomp=()=>setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC",documento:""}]);
+  const updAcomp=(i,k,v)=>setAcomp(p=>p.map((a,idx)=>idx===i?{...a,[k]:k==="nombre"?v.toUpperCase():v}:a));
+  const delAcomp=(i)=>setAcomp(p=>p.filter((_,idx)=>idx!==i));
   const hab=habitaciones.find(h=>h.num===f.hab);
   const huesped=huespedes.find(h=>h.id===f.huesped_id);
 
@@ -767,7 +777,7 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
     setErr("");
     const anticipo=parseInt(f.anticipo)||0;
     const saldo=Math.max(0,total-anticipo);
-    onSave({...f,adultos:parseInt(f.adultos)||1,ninos:parseInt(f.ninos)||0,mascotas:parseInt(f.mascotas)||0,precio_noche:precio,precio_base:precioBase,temporada:tempActiva?.nombre||'',temporada_pct:pctTemp,descuento_pct:descPct,descuento_valor:descValor,total_pagantes:totalPagantes,total,noches,anticipo,saldo});
+    onSave({...f,adultos:parseInt(f.adultos)||1,ninos:parseInt(f.ninos)||0,mascotas:parseInt(f.mascotas)||0,precio_noche:precio,precio_base:precioBase,temporada:tempActiva?.nombre||'',temporada_pct:pctTemp,descuento_pct:descPct,descuento_valor:descValor,total_pagantes:totalPagantes,total,noches,anticipo,saldo,acompanantes:JSON.stringify(acomp)});
   };
 
   return(
@@ -934,6 +944,39 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
             <Inp label="ESTADO" value={f.estado} onChange={v=>setF(p=>({...p,estado:v}))}
               options={[{v:"reservada",l:"Reservada"},{v:"ocupada",l:"Ocupada"},{v:"disponible",l:"Disponible"},{v:"mantenimiento",l:"Mantenimiento"}]}/>
             <Inp label="NOTAS (opcional)" value={f.notas} onChange={v=>setF(p=>({...p,notas:v}))} placeholder="Luna de miel, cuna..."/>
+          </div>
+
+          {/* Acompañantes */}
+          <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acomp.length?10:0}}>
+              <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acomp.length})</div>
+              <button type="button" onClick={addAcomp}
+                style={{background:C.accent+"18",border:`1px solid ${C.accent}44`,borderRadius:6,padding:"4px 10px",color:C.accent,fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                + Agregar
+              </button>
+            </div>
+            {acomp.map((a,i)=>(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"130px 1fr 28px",gap:7,marginBottom:7,alignItems:"end"}}>
+                <div>
+                  {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
+                  <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
+                    style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"7px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}>
+                    <option value="CC">🪪 Cédula</option>
+                    <option value="TI">📋 Tarjeta Identidad</option>
+                    <option value="CE">🌐 Cédula Extranjería</option>
+                  </select>
+                </div>
+                <div>
+                  {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
+                  <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
+                    placeholder="NOMBRE ACOMPAÑANTE"
+                    style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"7px 9px",color:C.text,fontSize:11,outline:"none",width:"100%",textTransform:"uppercase"}}/>
+                </div>
+                <button type="button" onClick={()=>delAcomp(i)}
+                  style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+              </div>
+            ))}
+            {acomp.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes registrados</div>}
           </div>
 
           {/* Pago y anticipo */}
