@@ -701,7 +701,7 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
       alert(`⛔ Esta habitación tiene capacidad para ${capMax} personas. Ya tienes el titular + ${acomp.length} acompañante${acomp.length>1?"s":""}.`);
       return;
     }
-    setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC"}]);
+    setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC",documento:"",fecha_nac:""}]);
   };
   const updAcomp=(i,k,v)=>setAcomp(p=>p.map((a,idx)=>idx===i?{...a,[k]:k==="nombre"?v.toUpperCase():v}:a));
   const delAcomp=(i)=>setAcomp(p=>p.filter((_,idx)=>idx!==i));
@@ -964,24 +964,51 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
               </button>
             </div>
             {acomp.map((a,i)=>(
-              <div key={i} style={{display:"grid",gridTemplateColumns:"130px 1fr 28px",gap:7,marginBottom:7,alignItems:"end"}}>
-                <div>
-                  {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
-                  <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
-                    style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"7px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}>
-                    <option value="CC">🪪 Cédula</option>
-                    <option value="TI">📋 Tarjeta Identidad</option>
-                    <option value="CE">🌐 Cédula Extranjería</option>
-                  </select>
+              <div key={i} style={{background:C.card,borderRadius:8,padding:"10px 10px 8px",marginBottom:8,border:`1px solid ${C.border}`}}>
+                <div style={{display:"grid",gridTemplateColumns:"120px 100px 1fr 28px",gap:7,marginBottom:7,alignItems:"end"}}>
+                  <div>
+                    {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
+                    <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
+                      style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:11,outline:"none",width:"100%"}}>
+                      <option value="CC">🪪 Cédula</option>
+                      <option value="TI">📋 T. Identidad</option>
+                      <option value="CE">🌐 C. Extranjería</option>
+                    </select>
+                  </div>
+                  <div>
+                    {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>No. DOCUMENTO</label>}
+                    <input value={a.documento||""} onChange={e=>updAcomp(i,"documento",e.target.value)}
+                      placeholder="123456789"
+                      style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}/>
+                  </div>
+                  <div>
+                    {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
+                    <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
+                      placeholder="NOMBRE ACOMPAÑANTE"
+                      style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%",textTransform:"uppercase"}}/>
+                  </div>
+                  <button type="button" onClick={()=>delAcomp(i)}
+                    style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",marginTop:i===0?14:0}}>×</button>
                 </div>
-                <div>
-                  {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
-                  <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
-                    placeholder="NOMBRE ACOMPAÑANTE"
-                    style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"7px 9px",color:C.text,fontSize:11,outline:"none",width:"100%",textTransform:"uppercase"}}/>
+                {/* Fecha de nacimiento — visible siempre, importante para menores */}
+                <div style={{display:"grid",gridTemplateColumns:"160px 1fr",gap:7,alignItems:"end"}}>
+                  <div>
+                    <label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>FECHA DE NACIMIENTO</label>
+                    <input type="date" value={a.fecha_nac||""} onChange={e=>updAcomp(i,"fecha_nac",e.target.value)}
+                      style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}/>
+                  </div>
+                  {a.fecha_nac&&(()=>{
+                    const hoy=new Date();
+                    const nac=new Date(a.fecha_nac);
+                    const edad=Math.floor((hoy-nac)/(365.25*24*3600*1000));
+                    const esMenor=edad<18;
+                    return(
+                      <div style={{padding:"6px 10px",borderRadius:6,background:esMenor?C.yellow+"18":C.green+"12",border:`1px solid ${esMenor?C.yellow:C.green}33`,fontSize:10,fontWeight:700,color:esMenor?C.yellow:C.green}}>
+                        {esMenor?"👶 Menor de edad":"✓ Mayor de edad"} · {edad} años
+                      </div>
+                    );
+                  })()}
                 </div>
-                <button type="button" onClick={()=>delAcomp(i)}
-                  style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
               </div>
             ))}
             {acomp.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes registrados</div>}
