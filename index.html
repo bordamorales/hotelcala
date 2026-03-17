@@ -1427,8 +1427,28 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       </tr>`;
     }).join("");
 
+    // Desglose por método de pago
+    const pagoMethods=["efectivo","tarjeta","transferencia","cortesia","pendiente"];
+    const pagoLabels={efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía",pendiente:"⏳ Pendiente"};
+    const pagoColors={efectivo:"#10B981",tarjeta:"#8B5CF6",transferencia:"#0EA5E9",cortesia:"#06B6D4",pendiente:"#F59E0B"};
+    const desglosePago=pagoMethods.map(pm=>{
+      const tot=resHabF.filter(r=>r.pago===pm).reduce((a,r)=>{
+        const h2=habitaciones.find(x=>x.num===String(r.hab||"").trim());
+        const tp2=(parseInt(r.adultos)||1)+(parseInt(r.ninos)||0)+(parseInt(r.mascotas)||0);
+        const n2=Math.max(1,Math.round((new Date(r.checkout)-new Date(r.checkin))/(864e5)));
+        return a+(h2?.precio||parseInt(r.precio_noche)||130000)*tp2*n2;
+      },0);
+      const cnt=resHabF.filter(r=>r.pago===pm).length;
+      return{pm,tot,cnt};
+    }).filter(x=>x.cnt>0);
+    // Total descuentos aplicados
+    const totalDescuentos=resHabF.reduce((a,r)=>a+(parseInt(r.descuento_valor)||0),0);
+    // Logo
+    const _logoRpt=localStorage.getItem("hotelcala_logo")||"";
+    const _nombreRpt=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
+
     const w=window.open("","_blank","width=1100,height=800");
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Reporte Hotel Cala · ${periodoLabel}</title>
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Reporte ${_nombreRpt} · ${periodoLabel}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:'Segoe UI',sans-serif;background:#fff;color:#1e293b;padding:28px;font-size:12px;}
@@ -1436,10 +1456,12 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       .sub{font-size:10px;color:#64748B;letter-spacing:1px;margin-bottom:4px;}
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0EA5E9;padding-bottom:14px;margin-bottom:20px;}
       .periodo{font-size:13px;font-weight:700;color:#1e293b;}
-      .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+      .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
       .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;}
       .kpi .val{font-size:18px;font-weight:800;color:#0EA5E9;}
       .kpi .lbl{font-size:9px;color:#64748B;margin-top:2px;}
+      .desglose{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+      .pago-badge{border-radius:7px;padding:8px 14px;font-size:11px;font-weight:700;border:1px solid;}
       h2{font-size:13px;font-weight:700;margin-bottom:10px;color:#0f172a;}
       table{width:100%;border-collapse:collapse;margin-bottom:28px;font-size:11px;}
       th{background:#0f172a;color:#e2e8f0;padding:8px 9px;font-size:9px;text-align:left;font-weight:700;letter-spacing:.4px;}
@@ -1451,11 +1473,17 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       @media print{.no-print{display:none!important;} body{padding:16px;}}
     </style></head><body>
     <div class="no-print">
-      <span>📊 <b>Reporte Hotel Cala</b> · ${periodoLabel} · Generado el ${fmtHoy}</span>
+      <span>📊 <b>Reporte ${_nombreRpt}</b> · ${periodoLabel} · Generado el ${fmtHoy}</span>
       <button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
     </div>
     <div class="header">
-      <div><h1>🌊 HOTEL CALA</h1><div class="sub">REPORTE DE GESTIÓN · GENERADO ${fmtHoy}</div></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        ${_logoRpt?`<img src="${_logoRpt}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0"/>`:``}
+        <div>
+          <h1>${_nombreRpt}</h1>
+          <div class="sub">REPORTE DE GESTIÓN · GENERADO ${fmtHoy}</div>
+        </div>
+      </div>
       <div style="text-align:right"><div class="periodo">📅 ${periodoLabel}</div><div style="font-size:10px;color:#64748B;margin-top:3px">${desde} al ${hasta}</div></div>
     </div>
     <div class="kpis">
@@ -1464,6 +1492,15 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       <div class="kpi"><div class="val">${fmt(ingHab+ingZonas)}</div><div class="lbl">📊 Total ingresos</div></div>
       <div class="kpi"><div class="val" style="color:#EF4444">${fmt(pendHab)}</div><div class="lbl">⏳ Saldos pendientes hab.</div></div>
     </div>
+    ${desglosePago.length>0?`
+    <div style="margin-bottom:6px;font-size:10px;font-weight:700;color:#64748B;letter-spacing:.5px">💳 DESGLOSE POR MÉTODO DE PAGO</div>
+    <div class="desglose">
+      ${desglosePago.map(({pm,tot,cnt})=>`
+        <div class="pago-badge" style="background:${pagoColors[pm]||"#64748B"}15;border-color:${pagoColors[pm]||"#64748B"}44;color:${pagoColors[pm]||"#64748B"}">
+          ${pagoLabels[pm]||pm} · ${cnt} reserva${cnt>1?"s":""} · <b>${fmt(tot)}</b>
+        </div>`).join("")}
+      ${totalDescuentos>0?`<div class="pago-badge" style="background:#EC489915;border-color:#EC489944;color:#EC4899">🏷️ Descuentos · <b>- ${fmt(totalDescuentos)}</b></div>`:""}
+    </div>`:""}
     ${repTab==="hab"||true?`
     <h2>🏠 Reservas de Habitaciones (${resHabF.length})</h2>
     ${resHabF.length>0?`<table>
