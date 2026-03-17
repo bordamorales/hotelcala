@@ -1723,12 +1723,21 @@ function Login({onLogin}){
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 70% 40% at 50% 0%,#0EA5E920 0%,transparent 55%)",pointerEvents:"none"}}/>
       <div style={{background:C.surface,borderRadius:18,padding:"38px 32px",width:"100%",maxWidth:380,border:`1px solid ${C.border}`,boxShadow:"0 40px 80px #00000090",position:"relative",zIndex:1,animation:"fadeUp .3s ease"}}>
-        <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:40,marginBottom:9}}>🌊</div>
-          <div style={{fontSize:23,fontWeight:900,letterSpacing:3,background:`linear-gradient(135deg,${C.accent},${C.accent2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>HOTEL CALA</div>
-          <div style={{color:C.muted,fontSize:9,marginTop:4,letterSpacing:2}}>SISTEMA DE GESTIÓN</div>
-          {!gasConfigured()&&<div style={{marginTop:10,background:"#F59E0B15",border:"1px solid #F59E0B40",borderRadius:7,padding:"6px 10px",fontSize:10,color:C.yellow}}>⚠️ Modo demo — sin Google Sheets</div>}
-        </div>
+        {(()=>{
+          const _logo=localStorage.getItem("hotelcala_logo")||"";
+          const _nombre=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
+          return(
+            <div style={{textAlign:"center",marginBottom:28}}>
+              {_logo
+                ?<img src={_logo} alt="logo" style={{width:72,height:72,borderRadius:12,objectFit:"cover",margin:"0 auto 10px",display:"block",border:`2px solid ${C.border}`}}/>
+                :<div style={{fontSize:40,marginBottom:9}}>🌊</div>
+              }
+              <div style={{fontSize:22,fontWeight:900,letterSpacing:2,background:`linear-gradient(135deg,${C.accent},${C.accent2})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{_nombre}</div>
+              <div style={{color:C.muted,fontSize:9,marginTop:4,letterSpacing:2}}>SISTEMA DE GESTIÓN</div>
+              {!gasConfigured()&&<div style={{marginTop:10,background:"#F59E0B15",border:"1px solid #F59E0B40",borderRadius:7,padding:"6px 10px",fontSize:10,color:C.yellow}}>⚠️ Modo demo — sin Google Sheets</div>}
+            </div>
+          );
+        })()}
         <div style={{display:"flex",flexDirection:"column",gap:11}}>
           <Inp label="USUARIO" value={u} onChange={setU} placeholder="Ingresa tu usuario"/>
           <Inp label="CONTRASEÑA" value={p} onChange={setP} type="password" placeholder="••••••••"/>
