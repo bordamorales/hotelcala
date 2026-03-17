@@ -1942,6 +1942,7 @@ function App(){
   const[delHuesped,setDelHuesped]=useState(null);
   const[busq,setBusq]=useState("");
   const[filtro,setFiltro]=useState("todos");
+  const[filtroFecha,setFiltroFecha]=useState("hoy");// hoy|semana|mes|todos
   const[filtroHab,setFiltroHab]=useState("todas");// todas|ocupadas|disponibles|proximas
   const[checkoutRapidoId,setCheckoutRapidoId]=useState(null);// id reserva en proceso
   const[toast,setToast]=useState(null);
@@ -2340,7 +2341,11 @@ function App(){
   const filtered=reservas.filter(r=>{
     const mf=filtro==="todos"||r.tipo===filtro||r.estado===filtro||r.pago===filtro;
     const mb=r.nombre?.toLowerCase().includes(busq.toLowerCase())||(r.hab&&r.hab.includes(busq))||(r.date&&r.date.includes(busq));
-    return mf&&mb;
+    const hoy=dateKey(new Date());
+    const semanaAtras=dateKey(new Date(Date.now()-7*864e5));
+    const mesAtras=dateKey(new Date(Date.now()-30*864e5));
+    const mfecha=filtroFecha==="todos"||(filtroFecha==="hoy"&&r.date===hoy)||(filtroFecha==="semana"&&r.date>=semanaAtras)||(filtroFecha==="mes"&&r.date>=mesAtras);
+    return mf&&mb&&mfecha;
   });
 
   const NAV=[
@@ -2906,6 +2911,20 @@ function App(){
         {/* ══ ZONAS HÚMEDAS ══ */}
         {vista==="zonas"&&(
           <div style={{animation:"fadeUp .2s ease"}}>
+            {/* Filtros fecha + tipo */}
+            <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
+              {[{v:"hoy",l:"📅 Hoy"},{v:"semana",l:"📆 7 días"},{v:"mes",l:"🗓 30 días"},{v:"todos",l:"🔍 Todos"}].map(x=>(
+                <button key={x.v} onClick={()=>setFiltroFecha(x.v)}
+                  style={{padding:"5px 11px",borderRadius:5,border:"1px solid",cursor:"pointer",fontSize:10,fontWeight:700,
+                    borderColor:filtroFecha===x.v?C.teal:C.border,
+                    background:filtroFecha===x.v?C.teal+"18":C.card,
+                    color:filtroFecha===x.v?C.teal:C.muted}}>
+                  {x.l}
+                </button>
+              ))}
+              <div style={{flex:1}}/>
+              <span style={{fontSize:9,color:C.dim}}>{filtered.length} registro{filtered.length!==1?"s":""}</span>
+            </div>
             <div style={{display:"flex",gap:6,marginBottom:11,flexWrap:"wrap",alignItems:"center"}}>
               <input placeholder="🔍 Nombre, habitación o fecha..." value={busq} onChange={e=>setBusq(e.target.value)}
                 style={{flex:1,minWidth:150,background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 10px",color:C.text,fontSize:11,outline:"none"}}/>
