@@ -694,7 +694,15 @@ function ModalReservaHab({onSave,onClose,editData,saving,huespedes,habitaciones,
   const[acomp,setAcomp]=useState(()=>{
     try{return editData?.acompanantes?JSON.parse(editData.acompanantes):[];}catch{return [];}
   });
-  const addAcomp=()=>setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC",documento:""}]);
+  const addAcomp=()=>{
+    // 1 titular + acompañantes no puede superar capacidad de la habitación
+    const maxAcomp=capMax-1;// -1 por el titular
+    if(acomp.length>=maxAcomp){
+      alert(`⛔ Esta habitación tiene capacidad para ${capMax} personas. Ya tienes el titular + ${acomp.length} acompañante${acomp.length>1?"s":""}.`);
+      return;
+    }
+    setAcomp(p=>[...p,{nombre:"",tipo_doc:"CC"}]);
+  };
   const updAcomp=(i,k,v)=>setAcomp(p=>p.map((a,idx)=>idx===i?{...a,[k]:k==="nombre"?v.toUpperCase():v}:a));
   const delAcomp=(i)=>setAcomp(p=>p.filter((_,idx)=>idx!==i));
   const hab=habitaciones.find(h=>h.num===f.hab);
@@ -2692,7 +2700,26 @@ function App(){
                           onMouseEnter={e=>e.currentTarget.style.background=C.border+"22"}
                           onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":"#0a1120"}>
                           <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}><span style={{color:C.accent,fontWeight:700,fontSize:11}}>{r.hab}</span><br/><span style={{color:C.muted,fontSize:9,textTransform:"capitalize"}}>{hab?.tipo}</span></td>
-                          <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}><div style={{fontSize:11,fontWeight:600}}>{h?.nombre} {h?.apellidos}</div><div style={{color:C.muted,fontSize:9}}>📞 {h?.telefono}</div></td>
+                          <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}>
+                            <div style={{fontSize:11,fontWeight:600}}>{h?.nombre} {h?.apellidos}</div>
+                            <div style={{color:C.muted,fontSize:9}}>📞 {h?.telefono}</div>
+                            {(()=>{
+                              try{
+                                const ac=r.acompanantes?JSON.parse(r.acompanantes):[];
+                                if(!ac.length)return null;
+                                return(
+                                  <div style={{marginTop:4,display:"flex",flexDirection:"column",gap:2}}>
+                                    {ac.map((a,i)=>(
+                                      <div key={i} style={{fontSize:8,color:C.teal,display:"flex",alignItems:"center",gap:3}}>
+                                        <span style={{background:C.teal+"22",borderRadius:3,padding:"1px 4px",fontWeight:700}}>{a.tipo_doc||"CC"}</span>
+                                        <span>{a.nombre}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              }catch{return null;}
+                            })()}
+                          </td>
                           <td style={{padding:"7px 10px",fontSize:10,color:C.muted,borderBottom:`1px solid ${C.border}10`}}>{h?.cedula}</td>
                           <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}><Tag text={hab?.tipo?.toUpperCase()||"—"} color={hab?.piso===4?C.accent2:hab?.piso===3?C.teal:C.accent}/></td>
                           <td style={{padding:"7px 10px",fontSize:10,borderBottom:`1px solid ${C.border}10`}}>{fmtFecha(r.checkin)}{r.checkin===todayKey&&<><br/><Tag text="HOY" color={C.green} size={8}/></>}</td>
@@ -2970,6 +2997,9 @@ function App(){
                                   const huesped=huespedes.find(x=>x.id===res.huesped_id);
                                   const nombreCorto=huesped?(huesped.nombre+" "+(huesped.apellidos||"")).slice(0,18):"—";
                                   const bColor=res.estado==="ocupada"?C.red:C.yellow;
+                                  let acompArr=[];
+                                  try{acompArr=res.acompanantes?JSON.parse(res.acompanantes):[];}catch{}
+                                  const acompTooltip=acompArr.length?`\nAcompañantes: ${acompArr.map(a=>a.nombre).join(", ")}`:"";
                                   return(
                                     <div
                                       onClick={()=>{setEditHab(res);setModalHab(true);}}
@@ -2984,10 +3014,15 @@ function App(){
                                         padding:"0 7px",gap:4,overflow:"hidden",
                                         transition:"all .12s"
                                       }}
-                                      title={`${nombreCorto} · ${res.checkin} → ${res.checkout}`}
+                                      title={`${nombreCorto} · ${res.checkin} → ${res.checkout}${acompTooltip}`}
                                     >
                                       <div style={{width:6,height:6,borderRadius:"50%",background:bColor,flexShrink:0}}/>
                                       <span style={{fontSize:9,fontWeight:700,color:bColor,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{nombreCorto}</span>
+                                      {acompArr.length>0&&(
+                                        <span style={{marginLeft:"auto",background:C.teal+"33",color:C.teal,borderRadius:3,padding:"1px 4px",fontSize:8,fontWeight:700,flexShrink:0}}>
+                                          👥{acompArr.length}
+                                        </span>
+                                      )}
                                     </div>
                                   );
                                 })()}
