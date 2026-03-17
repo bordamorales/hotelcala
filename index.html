@@ -384,8 +384,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
   const totalPers=(f.adultos||0)+(f.ninos||0);
   const canNext=f.servicio&&f.date&&f.hora&&totalPers>=1;
   const totalBrutoZ=f.tipo==="huesped"?0:Math.round(sv.precio_adulto*(f.adultos||0)+sv.precio_nino*(f.ninos||0));
-  const descValorZ=Math.round(totalBrutoZ*(descPctZ/100));
-  const total=totalBrutoZ-descValorZ;
+  const total=totalBrutoZ;
 
   // Buscar huésped por cédula
   const buscarPorCedula=(ced)=>{
@@ -426,7 +425,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
     if(libres<totalPers)return setErr(`⛔ Sin cupos: ${libres} lugar${libres!==1?"es":""} disponibles`);
     setErr("");
     const pagoFinal=f.tipo==="huesped"?"cortesia":f.pago;
-    onSave({...f,dur:60,adultos:parseInt(f.adultos||0),ninos:parseInt(f.ninos||0),total,descuento_pct:descPctZ,descuento_valor:descValorZ,acompanantes:JSON.stringify(acomp),pago:pagoFinal});
+    onSave({...f,dur:60,adultos:parseInt(f.adultos||0),ninos:parseInt(f.ninos||0),total,pago:pagoFinal});
   };
 
   return(
@@ -561,204 +560,7 @@ function ModalReserva({reservas,onSave,onClose,editData,svc,saving,huespedes,res
                 <Inp label="ESTADO" value={f.estado} onChange={v=>setF(p=>({...p,estado:v}))}
                   options={Object.entries(EST).map(([k,e])=>({v:k,l:e.l}))}/>
               </div>
-              {/* Acompañantes */}
-              <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acomp.length?10:0}}>
-                  <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acomp.length})</div>
-                  <button type="button" onClick={addAcomp}
-                    style={{background:C.accent+"18",border:`1px solid ${C.accent}44`,borderRadius:6,padding:"4px 10px",color:C.accent,fontSize:10,fontWeight:700,cursor:"pointer"}}>
-                    + Agregar
-                  </button>
-                </div>
-                {acomp.map((a,i)=>(
-                  <div key={i} style={{background:C.card,borderRadius:8,padding:"10px 10px 8px",marginBottom:8,border:`1px solid ${C.border}`}}>
-                    <div style={{display:"grid",gridTemplateColumns:"110px 90px 1fr 28px",gap:6,marginBottom:6,alignItems:"end"}}>
-                      <div>
-                        {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
-                        <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%"}}>
-                          <option value="CC">🪪 Cédula</option>
-                          <option value="TI">📋 T.Identidad</option>
-                          <option value="CE">🌐 C.Extranjería</option>
-                        </select>
-                      </div>
-                      <div>
-                        {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>No. DOC.</label>}
-                        <input value={a.documento||""} onChange={e=>updAcomp(i,"documento",e.target.value)}
-                          placeholder="123456"
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%"}}/>
-                      </div>
-                      <div>
-                        {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
-                        <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
-                          placeholder="NOMBRE"
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%",textTransform:"uppercase"}}/>
-                      </div>
-                      <button type="button" onClick={()=>delAcomp(i)}
-                        style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",marginTop:i===0?14:0}}>×</button>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"150px 1fr",gap:6,alignItems:"center"}}>
-                      <div>
-                        <label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>FECHA DE NACIMIENTO</label>
-                        <input type="date" value={a.fecha_nac||""} onChange={e=>updAcomp(i,"fecha_nac",e.target.value)}
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:10,outline:"none",width:"100%"}}/>
-                      </div>
-                      {a.fecha_nac&&(()=>{
-                        const edad=Math.floor((new Date()-new Date(a.fecha_nac))/(365.25*24*3600*1000));
-                        const esMenor=edad<18;
-                        return<div style={{padding:"6px 10px",borderRadius:6,background:esMenor?C.yellow+"18":C.green+"12",border:`1px solid ${esMenor?C.yellow:C.green}33`,fontSize:10,fontWeight:700,color:esMenor?C.yellow:C.green}}>
-                          {esMenor?"👶 Menor":"✓ Mayor"} · {edad} años
-                        </div>;
-                      })()}
-                    </div>
-                  </div>
-                ))}
-                {acomp.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes</div>}
-              </div>
 
-              {/* Descuento */}
-              {f.tipo!=="huesped"&&(
-                <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${descPctZ>0?C.pink:C.border}`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:descPctZ>0?8:0}}>
-                    <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>🏷️ DESCUENTO</div>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                      {[0,5,10,15,20,25,30].map(pct=>(
-                        <button key={pct} type="button" onClick={()=>setDescPctZ(pct)}
-                          style={{padding:"3px 7px",borderRadius:5,border:`1.5px solid ${descPctZ===pct?(pct===0?C.muted:C.pink):C.border}`,
-                            background:descPctZ===pct?(pct===0?"transparent":C.pink+"22"):"transparent",
-                            color:descPctZ===pct?(pct===0?C.muted:C.pink):C.muted,
-                            fontSize:9,fontWeight:700,cursor:"pointer"}}>
-                          {pct===0?"Sin desc.":pct+"%"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {descPctZ>0&&<div style={{display:"flex",justifyContent:"space-between",background:C.pink+"12",borderRadius:7,padding:"6px 10px"}}>
-                    <span style={{fontSize:11,color:C.pink,fontWeight:700}}>🏷️ Descuento {descPctZ}%</span>
-                    <span style={{fontSize:12,color:C.pink,fontWeight:800}}>− {fmt(descValorZ)}</span>
-                  </div>}
-                </div>
-              )}
-
-              {/* Acompañantes */}
-              <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:acomp.length?10:0}}>
-                  <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>👥 ACOMPAÑANTES ({acomp.length})</div>
-                  <button type="button" onClick={addAcomp}
-                    style={{background:C.accent+"18",border:`1px solid ${C.accent}44`,borderRadius:6,padding:"4px 10px",color:C.accent,fontSize:10,fontWeight:700,cursor:"pointer"}}>
-                    + Agregar
-                  </button>
-                </div>
-                {acomp.map((a,i)=>(
-                  <div key={i} style={{background:C.card,borderRadius:8,padding:"10px 10px 8px",marginBottom:8,border:`1px solid ${C.border}`}}>
-                    <div style={{display:"grid",gridTemplateColumns:"110px 100px 1fr 28px",gap:7,marginBottom:7,alignItems:"end"}}>
-                      <div>
-                        {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>TIPO DOC.</label>}
-                        <select value={a.tipo_doc} onChange={e=>updAcomp(i,"tipo_doc",e.target.value)}
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 7px",color:C.text,fontSize:11,outline:"none",width:"100%"}}>
-                          <option value="CC">🪪 Cédula</option>
-                          <option value="TI">📋 T. Identidad</option>
-                          <option value="CE">🌐 C. Extranjería</option>
-                        </select>
-                      </div>
-                      <div>
-                        {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>No. DOCUMENTO</label>}
-                        <input value={a.documento||""} onChange={e=>updAcomp(i,"documento",e.target.value)}
-                          placeholder="123456789"
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}/>
-                      </div>
-                      <div>
-                        {i===0&&<label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>NOMBRE COMPLETO</label>}
-                        <input value={a.nombre} onChange={e=>updAcomp(i,"nombre",e.target.value)}
-                          placeholder="NOMBRE ACOMPAÑANTE"
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%",textTransform:"uppercase"}}/>
-                      </div>
-                      <button type="button" onClick={()=>delAcomp(i)}
-                        style={{background:C.red+"18",border:`1px solid ${C.red}33`,borderRadius:6,width:28,height:28,color:C.red,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",marginTop:i===0?14:0}}>×</button>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"160px 1fr",gap:7,alignItems:"end"}}>
-                      <div>
-                        <label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:3}}>FECHA DE NACIMIENTO</label>
-                        <input type="date" value={a.fecha_nac||""} onChange={e=>updAcomp(i,"fecha_nac",e.target.value)}
-                          style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 8px",color:C.text,fontSize:11,outline:"none",width:"100%"}}/>
-                      </div>
-                      {a.fecha_nac&&(()=>{
-                        const edad=Math.floor((new Date()-new Date(a.fecha_nac))/(365.25*24*3600*1000));
-                        const esMenor=edad<18;
-                        return(<div style={{padding:"6px 10px",borderRadius:6,background:esMenor?C.yellow+"18":C.green+"12",border:`1px solid ${esMenor?C.yellow:C.green}33`,fontSize:10,fontWeight:700,color:esMenor?C.yellow:C.green}}>
-                          {esMenor?"👶 Menor de edad":"✓ Mayor de edad"} · {edad} años
-                        </div>);
-                      })()}
-                    </div>
-                  </div>
-                ))}
-                {acomp.length===0&&<div style={{color:C.dim,fontSize:11,textAlign:"center",padding:"4px 0"}}>Sin acompañantes registrados</div>}
-              </div>
-
-              {/* Descuento — solo para externos */}
-              {f.tipo!=="huesped"&&(
-                <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${descPctZ>0?C.pink:C.border}`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:descPctZ>0?10:0}}>
-                    <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5}}>🏷️ DESCUENTO</div>
-                    <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                      {[0,5,10,15,20,25,30].map(pct=>(
-                        <button key={pct} type="button" onClick={()=>setDescPctZ(pct)}
-                          style={{padding:"3px 8px",borderRadius:5,border:`1.5px solid ${descPctZ===pct?(pct===0?C.muted:C.pink):C.border}`,
-                            background:descPctZ===pct?(pct===0?"transparent":C.pink+"22"):"transparent",
-                            color:descPctZ===pct?(pct===0?C.muted:C.pink):C.muted,
-                            fontSize:10,fontWeight:700,cursor:"pointer",transition:"all .15s"}}>
-                          {pct===0?"Sin desc.":pct+"%"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {descPctZ>0&&(
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:C.pink+"12",borderRadius:7,padding:"7px 10px"}}>
-                      <span style={{fontSize:11,color:C.pink,fontWeight:700}}>🏷️ Descuento {descPctZ}% aplicado</span>
-                      <span style={{fontSize:13,color:C.pink,fontWeight:800}}>− {fmt(descValorZ)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Resumen cobro */}
-              <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${f.tipo==="huesped"?C.teal+"55":C.green+"33"}`}}>
-                <div style={{color:C.muted,fontSize:10,fontWeight:700,letterSpacing:.5,marginBottom:8}}>RESUMEN DE COBRO</div>
-                {f.tipo==="huesped"?(
-                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0"}}>
-                    <span style={{fontSize:18}}>🏨</span>
-                    <div>
-                      <div style={{color:C.teal,fontWeight:800,fontSize:16}}>GRATIS — Beneficio Huésped</div>
-                      <div style={{color:C.muted,fontSize:10,marginTop:2}}>Los huéspedes del hotel no tienen costo en zonas húmedas</div>
-                    </div>
-                  </div>
-                ):(
-                  <>
-                    {(f.adultos||0)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:5}}>
-                      <span style={{color:C.subtle}}>👨 {f.adultos} adulto{f.adultos>1?"s":""} × {fmt(sv.precio_adulto)}/h</span>
-                      <span style={{fontWeight:600}}>{fmt(Math.round(f.adultos*sv.precio_adulto))}</span>
-                    </div>}
-                    {(f.ninos||0)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:5}}>
-                      <span style={{color:C.pink}}>👦 {f.ninos} niño{f.ninos>1?"s":""} × {fmt(sv.precio_nino)}/h</span>
-                      <span style={{color:C.pink,fontWeight:600}}>{fmt(Math.round(f.ninos*sv.precio_nino))}</span>
-                    </div>}
-                    {descValorZ>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:5}}>
-                      <span style={{color:C.pink}}>🏷️ Descuento {descPctZ}%</span>
-                      <span style={{color:C.pink,fontWeight:700}}>− {fmt(descValorZ)}</span>
-                    </div>}
-                    {descValorZ>0&&(
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:4}}>
-                        <span style={{color:C.pink,fontSize:10,fontWeight:700}}>🏷️ Descuento {descPctZ}%</span>
-                        <span style={{color:C.pink,fontWeight:700,fontSize:11}}>− {fmt(descValorZ)}</span>
-                      </div>
-                    )}
-                    <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{color:C.muted,fontSize:10}}>TOTAL</span>
-                      <span style={{color:C.green,fontSize:20,fontWeight:800}}>{fmt(total)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
               {err&&<div style={{background:"#EF444415",border:"1px solid #EF444440",borderRadius:7,padding:"8px 13px",color:C.red,fontSize:11}}>⚠️ {err}</div>}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
                 <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,padding:10,color:C.muted,fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancelar</button>
