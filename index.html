@@ -1944,7 +1944,8 @@ function App(){
   const[filtro,setFiltro]=useState("todos");
   const[filtroFecha,setFiltroFecha]=useState("hoy");
   const[busqH,setBusqH]=useState("");
-  const[pageH,setPageH]=useState(0);// hoy|semana|mes|todos
+  const[pageH,setPageH]=useState(0);
+  const[busqRpt,setBusqRpt]=useState("");// hoy|semana|mes|todos
   const[filtroHab,setFiltroHab]=useState("todas");// todas|ocupadas|disponibles|proximas
   const[checkoutRapidoId,setCheckoutRapidoId]=useState(null);// id reserva en proceso
   const[toast,setToast]=useState(null);
@@ -3311,10 +3312,13 @@ function App(){
                   {/* Tabla detalle reservas del período */}
                   {resHabF.length>0&&(
                     <div style={{background:C.card,borderRadius:11,padding:16,border:`1px solid ${C.border}`}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:13}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                         <h3 style={{margin:0,fontSize:12,fontWeight:700}}>📋 Reservas del Período ({resHabF.length})</h3>
                         <div style={{fontSize:10,color:C.muted}}>Total cobrado: <b style={{color:C.green}}>{fmt(ingHab)}</b></div>
                       </div>
+                      <input placeholder="🔍 Buscar huésped, habitación o cédula..." value={busqRpt}
+                        onChange={e=>setBusqRpt(e.target.value)}
+                        style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",color:C.text,fontSize:11,outline:"none",marginBottom:12,boxSizing:"border-box"}}/>
                       <div style={{overflowX:"auto"}}>
                         <table style={{width:"100%",borderCollapse:"collapse",minWidth:600}}>
                           <thead>
@@ -3325,7 +3329,7 @@ function App(){
                             </tr>
                           </thead>
                           <tbody>
-                            {[...resHabF].sort((a,b)=>b.checkin>a.checkin?1:-1).map((r,idx)=>{
+                            {[...resHabF].filter(r=>{if(!busqRpt)return true;const hg=huespedes.find(x=>x.id===r.huesped_id);const q=busqRpt.toLowerCase();return String(r.hab||"").toLowerCase().includes(q)||`${hg?.nombre||""} ${hg?.apellidos||""}`.toLowerCase().includes(q)||String(hg?.cedula||"").includes(q);}).sort((a,b)=>b.checkin>a.checkin?1:-1).map((r,idx)=>{
                               const hg=huespedes.find(x=>x.id===r.huesped_id);
                               const hab=habitaciones.find(x=>x.num===r.hab);
                               const tp=(parseInt(r.adultos)||1)+(parseInt(r.ninos)||0)+(parseInt(r.mascotas)||0);
