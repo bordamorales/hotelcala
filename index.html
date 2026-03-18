@@ -2916,7 +2916,7 @@ function App(){
                   </tbody>
                 </table>
               </div>
-              {filteredH.length===0&&<div style={{textAlign:"center",padding:28,color:C.muted,fontSize:12}}>{busqH?"Sin resultados para ""+busqH+""":"Sin huéspedes registrados"}</div>}
+              {filteredH.length===0&&<div style={{textAlign:"center",padding:28,color:C.muted,fontSize:12}}>{busqH?`Sin resultados para "${busqH}"`:"Sin huéspedes registrados"}</div>}
               {totalPagesH>1&&(
                 <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:6,padding:"10px 14px",borderTop:`1px solid ${C.border}`,background:C.surface}}>
                   <button onClick={()=>setPageH(p=>Math.max(0,p-1))} disabled={pageH===0}
