@@ -2857,10 +2857,23 @@ function App(){
         )}
 
         {/* ══ HUÉSPEDES ══ */}
-        {vista==="huespedes"&&(
+        {vista==="huespedes"&&(()=>{
+          const PER_PAGE=20;
+          const[busqH,setBusqH]=React.useState("");
+          const[pageH,setPageH]=React.useState(0);
+          const filteredH=huespedes.filter(h=>
+            `${h.cedula} ${h.nombre} ${h.apellidos} ${h.telefono}`.toLowerCase().includes(busqH.toLowerCase())
+          );
+          const totalPagesH=Math.ceil(filteredH.length/PER_PAGE);
+          const pageDataH=filteredH.slice(pageH*PER_PAGE,(pageH+1)*PER_PAGE);
+          return(
           <div style={{display:"flex",flexDirection:"column",gap:12,animation:"fadeUp .2s ease"}}>
-            <div style={{display:"flex",justifyContent:"flex-end"}}>
-              <button onClick={()=>{setEditHuesped(null);setModalHuesped(true);}} style={{background:`linear-gradient(135deg,${C.accent},${C.accent2})`,border:"none",borderRadius:7,padding:"8px 16px",color:"white",fontWeight:700,cursor:"pointer",fontSize:12}}>+ Registrar Huésped</button>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <input placeholder="🔍 Buscar por cédula, nombre o teléfono..." value={busqH}
+                onChange={e=>{setBusqH(e.target.value);setPageH(0);}}
+                style={{flex:1,minWidth:200,background:C.card,border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 12px",color:C.text,fontSize:11,outline:"none"}}/>
+              <span style={{fontSize:10,color:C.muted,whiteSpace:"nowrap"}}>{filteredH.length} huésped{filteredH.length!==1?"es":""}</span>
+              <button onClick={()=>{setEditHuesped(null);setModalHuesped(true);}} style={{background:`linear-gradient(135deg,${C.accent},${C.accent2})`,border:"none",borderRadius:7,padding:"8px 16px",color:"white",fontWeight:700,cursor:"pointer",fontSize:12,whiteSpace:"nowrap"}}>+ Registrar Huésped</button>
             </div>
             <div style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,overflow:"hidden"}}>
               <div style={{overflowX:"auto"}}>
@@ -2873,7 +2886,7 @@ function App(){
                     </tr>
                   </thead>
                   <tbody>
-                    {huespedes.map((h,idx)=>{
+                    {pageDataH.map((h,idx)=>{
                       const rh=reservasHab.find(r=>r.huesped_id===h.id&&r.checkin<=todayKey&&r.checkout>todayKey&&(r.estado==="ocupada"||r.estado==="reservada"));
                       const zonasH=reservas.filter(r=>String(r.cedula||"")===String(h.cedula||"")).length;
                       return(
@@ -2903,10 +2916,26 @@ function App(){
                   </tbody>
                 </table>
               </div>
-              {huespedes.length===0&&<div style={{textAlign:"center",padding:28,color:C.muted,fontSize:12}}>Sin huéspedes registrados</div>}
+              {filteredH.length===0&&<div style={{textAlign:"center",padding:28,color:C.muted,fontSize:12}}>{busqH?"Sin resultados para ""+busqH+""":"Sin huéspedes registrados"}</div>}
+              {totalPagesH>1&&(
+                <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:6,padding:"10px 14px",borderTop:`1px solid ${C.border}`,background:C.surface}}>
+                  <button onClick={()=>setPageH(p=>Math.max(0,p-1))} disabled={pageH===0}
+                    style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 10px",color:pageH===0?C.dim:C.text,cursor:pageH===0?"not-allowed":"pointer",fontSize:11}}>‹ Anterior</button>
+                  {Array.from({length:totalPagesH},(_,i)=>(
+                    <button key={i} onClick={()=>setPageH(i)}
+                      style={{background:pageH===i?C.accent:"transparent",border:`1px solid ${pageH===i?C.accent:C.border}`,borderRadius:5,padding:"3px 8px",color:pageH===i?"white":C.muted,cursor:"pointer",fontSize:10,fontWeight:pageH===i?700:400,minWidth:28}}>
+                      {i+1}
+                    </button>
+                  ))}
+                  <button onClick={()=>setPageH(p=>Math.min(totalPagesH-1,p+1))} disabled={pageH===totalPagesH-1}
+                    style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 10px",color:pageH===totalPagesH-1?C.dim:C.text,cursor:pageH===totalPagesH-1?"not-allowed":"pointer",fontSize:11}}>Siguiente ›</button>
+                  <span style={{color:C.muted,fontSize:9}}>Página {pageH+1} de {totalPagesH}</span>
+                </div>
+              )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ══ ZONAS HÚMEDAS ══ */}
         {vista==="zonas"&&(
