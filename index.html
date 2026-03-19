@@ -2889,7 +2889,7 @@ function App(){
                   <tbody>
                     {pageDataH.map((h,idx)=>{
                       const rh=reservasHab.find(r=>r.huesped_id===h.id&&r.checkin<=todayKey&&r.checkout>todayKey&&(r.estado==="ocupada"||r.estado==="reservada"));
-                      const zonasH=reservas.filter(r=>String(r.cedula||"")===String(h.cedula||"")).length;
+                      const zonasH=reservas.filter(r=>String(r.cedula||"")===String(h.cedula||"")&&r.date===todayKey).length;
                       return(
                         <tr key={h.id} style={{background:idx%2===0?"transparent":"#0a1120"}}
                           onMouseEnter={e=>e.currentTarget.style.background=C.border+"22"}
