@@ -3354,8 +3354,9 @@ function App(){
                                   <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}><Tag text={pc.l} color={pc.c}/></td>
                                   <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}>
                                     <div style={{display:"flex",gap:3}}>
-                                      <button onClick={()=>setReciboItem({item:r,tipo:"hab"})} style={{background:C.accent+"22",border:"none",color:C.accent,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Ver recibo">🧾</button>
-                                      <button onClick={()=>setEmailModal({item:r,tipo:"hab"})} style={{background:C.green+"22",border:"none",color:C.green,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Enviar baucher">📧</button>
+                                      <button onClick={()=>{setEditHab(r);setModalHab(true);}} style={{background:C.accent+"22",border:"none",color:C.accent,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Editar reserva">✏️</button>
+                                      <button onClick={()=>setReciboItem({item:r,tipo:"hab"})} style={{background:C.green+"22",border:"none",color:C.green,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Ver recibo">🧾</button>
+                                      <button onClick={()=>setEmailModal({item:r,tipo:"hab"})} style={{background:C.teal+"22",border:"none",color:C.teal,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Enviar baucher">📧</button>
                                       {isAdmin&&<button onClick={()=>setDelReporte({...r,tipo_del:"hab"})} style={{background:C.red+"22",border:"none",color:C.red,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Eliminar">🗑️</button>}
                                     </div>
                                   </td>
