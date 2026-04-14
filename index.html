@@ -2059,7 +2059,7 @@ function ModalReciboSalon({item,onClose}){
   );
 }
 
-
+function Login({onLogin}){
   const[u,setU]=useState("");const[p,setP]=useState("");const[err,setErr]=useState("");const[load,setLoad]=useState(false);
   const go=async()=>{
     setLoad(true);setErr("");
@@ -2448,6 +2448,13 @@ function App(){
         }
         // Cargar usuarios (sin contraseñas — GAS las omite para seguridad)
         if(Array.isArray(res.usuarios))setUsuarios(res.usuarios);
+        if(Array.isArray(res.reservasSalon))setResSalon(res.reservasSalon.map(r=>({
+          ...r,
+          total:parseInt(r.total)||0,
+          anticipo:parseInt(r.anticipo)||0,
+          saldo:parseInt(r.saldo)||0,
+          personas:parseInt(r.personas)||1,
+        })));
         setSyncStatus("ok");setLastSync(new Date());
       }else{setSyncStatus("error");if(!silent)showToast("Error al cargar datos","err");}
     }catch(e){setSyncStatus("error");if(!silent)showToast("Sin conexión con Google Sheets","err");}
@@ -2647,16 +2654,37 @@ function App(){
   const saveSalon=async(data)=>{
     setSaving(true);
     try{
-      const id=editSalon?editSalon.id:("SAL"+Date.now());
-      const guardada={...data,id};
-      if(editSalon){setResSalon(p=>p.map(r=>r.id===editSalon.id?guardada:r));showToast("Reserva salón actualizada ✓");}
-      else{setResSalon(p=>[...p,guardada]);showToast("Reserva salón creada ✓");}
-    }catch{showToast("Error","err");}
+      if(gasConfigured()){
+        const action=editSalon?"actualizarReservaSalon":"crearReservaSalon";
+        const res=await gasPost({action,reservaSalon:{...data,id:editSalon?editSalon.id:undefined}});
+        if(res.ok){
+          const id=editSalon?editSalon.id:(res.id||"SAL"+Date.now());
+          const guardada={...data,id};
+          if(editSalon){setResSalon(p=>p.map(r=>r.id===editSalon.id?guardada:r));showToast("Reserva salón actualizada ✓");}
+          else{setResSalon(p=>[...p,guardada]);showToast("Reserva salón creada ✓");}
+          setTimeout(()=>cargarDatos(true),1500);
+        }else showToast("Error: "+(res.msg||""),"err");
+      }else{
+        const id=editSalon?editSalon.id:("SAL"+Date.now());
+        const guardada={...data,id};
+        if(editSalon){setResSalon(p=>p.map(r=>r.id===editSalon.id?guardada:r));showToast("Reserva salón actualizada (demo)");}
+        else{setResSalon(p=>[...p,guardada]);showToast("Reserva salón creada (demo)");}
+      }
+    }catch{showToast("Error de conexión","err");}
     finally{setSaving(false);setModalSalon(false);setEditSalon(null);}
   };
   const delSalonFn=async()=>{
-    setResSalon(p=>p.filter(r=>r.id!==delSalon.id));
-    showToast("Reserva eliminada","err");setDelSalon(null);
+    setSaving(true);
+    try{
+      if(gasConfigured()){
+        const res=await gasPost({action:"eliminarReservaSalon",id:delSalon.id});
+        if(res.ok){setResSalon(p=>p.filter(r=>r.id!==delSalon.id));showToast("Reserva eliminada","err");}
+        else showToast("Error al eliminar","err");
+      }else{
+        setResSalon(p=>p.filter(r=>r.id!==delSalon.id));showToast("Reserva eliminada (demo)","err");
+      }
+    }catch{showToast("Error de conexión","err");}
+    finally{setSaving(false);setDelSalon(null);}
   };
 
   /* ── Config servicios ── */
@@ -3727,10 +3755,10 @@ function App(){
               )}
             </div>
 
-            {/* ── Pestañas Habitaciones | Zonas ── */}
+            {/* ── Pestañas Habitaciones | Zonas | Salón ── */}
             <div style={{display:"flex",gap:0,background:C.surface,borderRadius:10,padding:3,border:`1px solid ${C.border}`}}>
-              {[["hab","🏠 Habitaciones",C.accent],["zonas","🌊 Zonas Húmedas",C.teal]].map(([k,l,col])=>(
-                <button key={k} onClick={()=>setRepTab(k)} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,transition:"all .2s",
+              {[["hab","🏠 Habitaciones",C.accent],["zonas","🌊 Zonas Húmedas",C.teal],["salon","🎉 Salón Eventos","#7C3AED"]].map(([k,l,col])=>(
+                <button key={k} onClick={()=>setRepTab(k)} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",cursor:"pointer",fontSize:11,fontWeight:700,transition:"all .2s",
                   background:repTab===k?col+"22":"transparent",color:repTab===k?col:C.muted,borderBottom:repTab===k?`2px solid ${col}`:"2px solid transparent"}}>
                   {l}
                 </button>
@@ -3959,6 +3987,132 @@ function App(){
                   </div>
                 )}
                 {resF.length===0&&<div style={{textAlign:"center",padding:32,color:C.muted,background:C.card,borderRadius:11}}><div style={{fontSize:32,marginBottom:8}}>🌊</div>Sin reservas de zonas húmedas en este período</div>}
+              </>);
+
+              /* ═══ PESTAÑA SALÓN DE EVENTOS ═══ */
+              const EVENTO_LABELS_R={boda:"💍 Boda",cumpleanos:"🎂 Cumpleaños",empresa:"🏢 Empresarial",graduacion:"🎓 Graduación",conferencia:"🎤 Conferencia",reunion:"📋 Reunión",otro:"🎪 Otro"};
+              const EST_SAL_R={reservado:{l:"RESERVADO",c:C.yellow},confirmado:{l:"CONFIRMADO",c:C.accent},en_curso:{l:"EN CURSO",c:C.red},completado:{l:"COMPLETADO",c:C.green},cancelado:{l:"CANCELADO",c:C.muted}};
+              const resSalF=reservasSalon.filter(r=>r.fecha_inicio>=desde&&r.fecha_inicio<=hasta);
+              const ingSal=resSalF.filter(r=>r.estado!=="cancelado"&&r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.anticipo)||0),0);
+              const pendSal=resSalF.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+Math.max(0,(parseInt(r.total)||0)-(parseInt(r.anticipo)||0)),0);
+              const totalBrutoSal=resSalF.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+(parseInt(r.total)||0),0);
+              const canceladosSal=resSalF.filter(r=>r.estado==="cancelado").length;
+              const completadosSal=resSalF.filter(r=>r.estado==="completado").length;
+              const PAGO_CNT=[
+                {pm:"efectivo",lbl:"💵 Efectivo",col:C.green},
+                {pm:"tarjeta",lbl:"💳 Tarjeta",col:C.accent2},
+                {pm:"transferencia",lbl:"🏦 Transferencia",col:C.accent},
+                {pm:"pendiente",lbl:"⏳ Pendiente",col:C.yellow},
+              ].map(x=>({...x,tot:resSalF.filter(r=>r.pago===x.pm&&r.estado!=="cancelado").reduce((a,r)=>a+(parseInt(r.anticipo)||0),0),num:resSalF.filter(r=>r.pago===x.pm).length})).filter(x=>x.num>0);
+              const eventosCnt={};resSalF.forEach(r=>{if(r.evento)eventosCnt[r.evento]=(eventosCnt[r.evento]||0)+1;});
+              return(<>
+                {/* KPIs Salón */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+                  {[
+                    {l:"Total bruto",v:fmt(totalBrutoSal),c:"#7C3AED",i:"💰"},
+                    {l:"Cobrado (anticipo)",v:fmt(ingSal),c:C.green,i:"✅"},
+                    {l:"Saldo por cobrar",v:fmt(pendSal),c:pendSal>0?C.red:C.muted,i:"⏳"},
+                    {l:"Eventos en período",v:resSalF.length,c:C.accent,i:"🎉"},
+                    {l:"Completados",v:completadosSal,c:C.teal,i:"🏁"},
+                    {l:"Cancelados",v:canceladosSal,c:C.muted,i:"❌"},
+                  ].map((k,i)=>(
+                    <div key={i} style={{background:C.card,borderRadius:10,padding:12,border:`1px solid ${k.c}20`}}>
+                      <div style={{fontSize:16,marginBottom:4}}>{k.i}</div>
+                      <div style={{color:k.c,fontSize:18,fontWeight:800}}>{k.v}</div>
+                      <div style={{color:C.muted,fontSize:9,marginTop:2}}>{k.l}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Distribución por tipo de evento y método de pago */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  {/* Por tipo de evento */}
+                  <div style={{background:C.card,borderRadius:11,padding:14,border:`1px solid ${C.border}`}}>
+                    <div style={{fontWeight:700,fontSize:12,marginBottom:11}}>🎭 Eventos por Tipo</div>
+                    {Object.keys(eventosCnt).length===0
+                      ?<div style={{color:C.muted,fontSize:11,textAlign:"center",padding:"10px 0"}}>Sin datos</div>
+                      :Object.entries(eventosCnt).sort((a,b)=>b[1]-a[1]).map(([k,n])=>(
+                        <div key={k} style={{marginBottom:8}}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                            <span style={{fontSize:11,color:C.text}}>{EVENTO_LABELS_R[k]||k}</span>
+                            <span style={{fontSize:11,fontWeight:700,color:"#A78BFA"}}>{n}</span>
+                          </div>
+                          <div style={{background:C.surface,borderRadius:3,height:5}}>
+                            <div style={{height:"100%",borderRadius:3,background:"linear-gradient(90deg,#7C3AED,#A78BFA)",width:`${(n/resSalF.length)*100}%`,transition:"width .6s"}}/>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                  {/* Por método de pago */}
+                  <div style={{background:C.card,borderRadius:11,padding:14,border:`1px solid ${C.border}`}}>
+                    <div style={{fontWeight:700,fontSize:12,marginBottom:11}}>💳 Ingresos por Método</div>
+                    {PAGO_CNT.length===0
+                      ?<div style={{color:C.muted,fontSize:11,textAlign:"center",padding:"10px 0"}}>Sin datos</div>
+                      :PAGO_CNT.map(x=>(
+                        <div key={x.pm} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}18`}}>
+                          <div>
+                            <div style={{fontSize:11,fontWeight:700,color:x.col}}>{x.lbl}</div>
+                            <div style={{fontSize:9,color:C.muted}}>{x.num} evento{x.num!==1?"s":""}</div>
+                          </div>
+                          <div style={{fontSize:13,fontWeight:800,color:x.col}}>{fmt(x.tot)}</div>
+                        </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabla detalle salón */}
+                {resSalF.length>0?(
+                  <div style={{background:C.card,borderRadius:11,padding:16,border:`1px solid ${C.border}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                      <h3 style={{margin:0,fontSize:12,fontWeight:700}}>📋 Reservas Salón del Período ({resSalF.length})</h3>
+                      <div style={{fontSize:10,color:C.muted}}>Cobrado: <b style={{color:C.green}}>{fmt(ingSal)}</b> · Pendiente: <b style={{color:pendSal>0?C.red:C.muted}}>{fmt(pendSal)}</b></div>
+                    </div>
+                    <div style={{overflowX:"auto"}}>
+                      <table style={{width:"100%",borderCollapse:"collapse",minWidth:700}}>
+                        <thead>
+                          <tr style={{background:C.surface}}>
+                            {["Cliente","Doc.","Evento","Fecha","Horario","Personas","Total","Anticipo","Saldo","Estado","Pago",""].map(h=>(
+                              <th key={h} style={{padding:"7px 10px",color:C.muted,fontSize:9,fontWeight:700,textAlign:"left",borderBottom:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...resSalF].sort((a,b)=>b.fecha_inicio>a.fecha_inicio?1:-1).map((r,idx)=>{
+                            const total=parseInt(r.total)||0;
+                            const anticipo=parseInt(r.anticipo)||0;
+                            const saldo=Math.max(0,total-anticipo);
+                            const ec=EST_SAL_R[r.estado]||{l:r.estado,c:C.muted};
+                            const pc=PAGO_T[r.pago]||{l:r.pago||"—",c:C.muted};
+                            return(
+                              <tr key={r.id} style={{background:idx%2===0?"transparent":"#0a1120"}}>
+                                <td style={{padding:"6px 10px",fontSize:11,fontWeight:700,borderBottom:`1px solid ${C.border}10`}}>{r.cliente_nombre||"—"}</td>
+                                <td style={{padding:"6px 10px",fontSize:9,color:C.muted,borderBottom:`1px solid ${C.border}10`,fontFamily:"monospace"}}>{r.cliente_cedula||"—"}</td>
+                                <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}><Tag text={EVENTO_LABELS_R[r.evento]||r.evento||"—"} color="#7C3AED"/></td>
+                                <td style={{padding:"6px 10px",fontSize:10,borderBottom:`1px solid ${C.border}10`,whiteSpace:"nowrap"}}>
+                                  {fmtFecha(r.fecha_inicio)}{r.fecha_inicio!==r.fecha_fin?<><br/><span style={{color:C.muted,fontSize:9}}>→ {fmtFecha(r.fecha_fin)}</span></>:""}
+                                </td>
+                                <td style={{padding:"6px 10px",fontSize:9,color:C.subtle,borderBottom:`1px solid ${C.border}10`,whiteSpace:"nowrap"}}>{r.hora_inicio||"—"}–{r.hora_fin||"—"}</td>
+                                <td style={{padding:"6px 10px",fontSize:10,textAlign:"center",borderBottom:`1px solid ${C.border}10`}}>{r.personas||"—"}</td>
+                                <td style={{padding:"6px 10px",fontSize:11,fontWeight:700,color:C.green,borderBottom:`1px solid ${C.border}10`,whiteSpace:"nowrap"}}>{fmt(total)}</td>
+                                <td style={{padding:"6px 10px",fontSize:11,color:C.accent,borderBottom:`1px solid ${C.border}10`,whiteSpace:"nowrap"}}>{anticipo>0?fmt(anticipo):"—"}</td>
+                                <td style={{padding:"6px 10px",fontSize:11,fontWeight:700,color:saldo>0?C.red:C.green,borderBottom:`1px solid ${C.border}10`,whiteSpace:"nowrap"}}>{fmt(saldo)}</td>
+                                <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}><Tag text={ec.l} color={ec.c}/></td>
+                                <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}><Tag text={pc.l} color={pc.c}/></td>
+                                <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}>
+                                  <div style={{display:"flex",gap:3}}>
+                                    <button onClick={()=>setReciboSalon(r)} style={{background:C.green+"22",border:"none",color:C.green,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Ver recibo">🧾</button>
+                                    <button onClick={()=>{setEditSalon(r);setModalSalon(true);}} style={{background:C.accent+"22",border:"none",color:C.accent,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Editar">✏️</button>
+                                    {isAdmin&&<button onClick={()=>setDelSalon(r)} style={{background:C.red+"22",border:"none",color:C.red,borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:10}} title="Eliminar">🗑️</button>}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ):<div style={{textAlign:"center",padding:32,color:C.muted,background:C.card,borderRadius:11}}><div style={{fontSize:32,marginBottom:8}}>🎉</div>Sin reservas de salón en este período</div>}
               </>);
             })()}
           </div>
