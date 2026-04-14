@@ -650,37 +650,87 @@ function ModalDel({reserva,onOk,onClose,svc,saving,esHab=false}){
    MODAL HUÉSPED
 ══════════════════════════════════════════ */
 function ModalHuesped({onSave,onClose,editData,saving}){
-  const init=editData??{cedula:"",tipo_doc:"CC",nombre:"",apellidos:"",telefono:"",correo:""};
-  const[f,setF]=useState({...init});
+  const init=editData??{cedula:"",tipo_doc:"CC",nombre:"",apellidos:"",telefono:"",correo:"",
+    direccion:"",pais:"Colombia",departamento:"",ciudad:"",
+    es_juridica:false,razon_social:"",nit:"",rep_legal:"",actividad_economica:""};
+  const[f,setF]=useState({...init,es_juridica:!!(editData?.es_juridica||editData?.nit)});
   const[err,setErr]=useState("");
   const save=()=>{
     if(!f.cedula.trim())return setErr("La cédula es obligatoria");
     if(!f.nombre.trim())return setErr("El nombre es obligatorio");
     if(!f.apellidos.trim())return setErr("Los apellidos son obligatorios");
     if(!f.telefono.trim())return setErr("El teléfono es obligatorio");
+    if(f.es_juridica&&!f.nit.trim())return setErr("El NIT es obligatorio para persona jurídica");
     setErr("");onSave(f);
   };
   return(
-    <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-      <div style={{background:C.card,borderRadius:15,width:"100%",maxWidth:460,border:`1px solid ${C.border}`,animation:"fadeUp .2s ease"}}>
-        <div style={{background:C.surface,padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+    <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto"}}>
+      <div style={{background:C.card,borderRadius:15,width:"100%",maxWidth:520,border:`1px solid ${C.border}`,animation:"fadeUp .2s ease",maxHeight:"96vh",overflowY:"auto"}}>
+        <div style={{background:C.surface,padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:10}}>
           <div style={{fontWeight:700,fontSize:14}}>{editData?"✏️ Editar Huésped":"➕ Nuevo Huésped"}</div>
           <button onClick={onClose} style={{background:C.border,border:"none",color:C.subtle,borderRadius:6,width:26,height:26,cursor:"pointer",fontSize:15}}>×</button>
         </div>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* ── Documento ── */}
+          <div style={{color:C.accent,fontSize:9,fontWeight:700,letterSpacing:.8,marginBottom:-4}}>IDENTIFICACIÓN</div>
           <div style={{display:"grid",gridTemplateColumns:"140px 1fr",gap:10}}>
             <Inp label="TIPO DOC." value={f.tipo_doc||"CC"} onChange={v=>setF(p=>({...p,tipo_doc:v}))}
-              options={[{v:"CC",l:"🪪 Cédula"},{v:"TI",l:"📋 Tarjeta Identidad"},{v:"CE",l:"🌐 Cédula Extranjería"}]}/>
+              options={[{v:"CC",l:"🪪 Cédula"},{v:"TI",l:"📋 Tarj. Identidad"},{v:"CE",l:"🌐 C. Extranjería"},{v:"PA",l:"🛂 Pasaporte"},{v:"NIT",l:"🏢 NIT"}]}/>
             <Inp label="NÚMERO DE DOCUMENTO" value={f.cedula} onChange={v=>setF(p=>({...p,cedula:v}))} placeholder="1098765432"/>
           </div>
+
+          {/* ── Nombres ── */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Inp label="NOMBRE" value={f.nombre} onChange={v=>setF(p=>({...p,nombre:v}))} placeholder="CARLOS" upper/>
             <Inp label="APELLIDOS" value={f.apellidos} onChange={v=>setF(p=>({...p,apellidos:v}))} placeholder="RUIZ MENDOZA" upper/>
           </div>
+
+          {/* ── Contacto ── */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Inp label="TELÉFONO" value={f.telefono} onChange={v=>setF(p=>({...p,telefono:v}))} placeholder="3101234567"/>
             <Inp label="CORREO ELECTRÓNICO" value={f.correo} onChange={v=>setF(p=>({...p,correo:v}))} placeholder="correo@email.com"/>
           </div>
+
+          {/* ── Dirección y residencia ── */}
+          <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10}}>
+            <div style={{color:C.teal,fontSize:9,fontWeight:700,letterSpacing:.8,marginBottom:9}}>DIRECCIÓN DE RESIDENCIA</div>
+            <div style={{display:"flex",flexDirection:"column",gap:9}}>
+              <Inp label="DIRECCIÓN (calle, carrera, avenida...)" value={f.direccion||""} onChange={v=>setF(p=>({...p,direccion:v}))} placeholder="Cra 15 # 23-45, Apto 301"/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                <Inp label="PAÍS" value={f.pais||"Colombia"} onChange={v=>setF(p=>({...p,pais:v}))} placeholder="Colombia"/>
+                <Inp label="DEPARTAMENTO" value={f.departamento||""} onChange={v=>setF(p=>({...p,departamento:v}))} placeholder="Antioquia"/>
+                <Inp label="CIUDAD" value={f.ciudad||""} onChange={v=>setF(p=>({...p,ciudad:v}))} placeholder="Medellín"/>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Persona Jurídica toggle ── */}
+          <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10}}>
+            <button type="button" onClick={()=>setF(p=>({...p,es_juridica:!p.es_juridica}))}
+              style={{display:"flex",alignItems:"center",gap:9,background:f.es_juridica?C.accent2+"18":"transparent",border:`1px solid ${f.es_juridica?C.accent2:C.border}`,borderRadius:8,padding:"8px 14px",cursor:"pointer",width:"100%",textAlign:"left",transition:"all .15s"}}>
+              <div style={{width:20,height:20,borderRadius:5,background:f.es_juridica?C.accent2:"transparent",border:`2px solid ${f.es_juridica?C.accent2:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .15s"}}>
+                {f.es_juridica&&<span style={{color:"white",fontSize:12,fontWeight:900}}>✓</span>}
+              </div>
+              <div>
+                <div style={{color:f.es_juridica?C.accent2:C.muted,fontWeight:700,fontSize:11}}>🏢 Persona Jurídica / Empresa</div>
+                <div style={{color:C.dim,fontSize:9,marginTop:1}}>Activar si el cliente es una empresa o sociedad</div>
+              </div>
+            </button>
+
+            {f.es_juridica&&(
+              <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:9,background:C.accent2+"0A",borderRadius:9,padding:12,border:`1px solid ${C.accent2}22`}}>
+                <div style={{color:C.accent2,fontSize:9,fontWeight:700,letterSpacing:.8,marginBottom:2}}>DATOS TRIBUTARIOS</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <Inp label="NIT *" value={f.nit||""} onChange={v=>setF(p=>({...p,nit:v}))} placeholder="900.123.456-7"/>
+                  <Inp label="RAZÓN SOCIAL *" value={f.razon_social||""} onChange={v=>setF(p=>({...p,razon_social:v.toUpperCase()}))} placeholder="EMPRESA S.A.S." upper/>
+                </div>
+                <Inp label="REPRESENTANTE LEGAL" value={f.rep_legal||""} onChange={v=>setF(p=>({...p,rep_legal:v}))} placeholder="Juan Pérez García"/>
+                <Inp label="ACTIVIDAD ECONÓMICA" value={f.actividad_economica||""} onChange={v=>setF(p=>({...p,actividad_economica:v}))} placeholder="Servicios turísticos, hospedaje..."/>
+              </div>
+            )}
+          </div>
+
           {err&&<div style={{background:"#EF444415",border:"1px solid #EF444440",borderRadius:7,padding:"8px 13px",color:C.red,fontSize:11}}>⚠️ {err}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
             <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,padding:10,color:C.muted,fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancelar</button>
@@ -1749,7 +1799,267 @@ function ModalRecibo({item,tipo,onClose,onEmail,svc,huespedes,habitaciones}){
 }
 
 
-function Login({onLogin}){
+/* ══════════════════════════════════════════
+   MODAL RESERVA SALÓN DE EVENTOS
+══════════════════════════════════════════ */
+function ModalSalon({onSave,onClose,editData,saving,huespedes,reservasSalon}){
+  const todayKey=dateKey(new Date());
+  const manana=dateKey(new Date(Date.now()+86400000));
+  const init=editData??{cliente_nombre:"",cliente_cedula:"",cliente_telefono:"",huesped_id:"",
+    fecha_inicio:todayKey,fecha_fin:manana,hora_inicio:"08:00",hora_fin:"18:00",
+    evento:"",personas:1,notas:"",total:0,anticipo:0,pago:"pendiente",estado:"reservado"};
+  const[f,setF]=useState({...init,anticipo:parseInt(init.anticipo)||0,total:parseInt(init.total)||0});
+  const[err,setErr]=useState("");
+  const[busqCed,setBusqCed]=useState(()=>{if(editData?.huesped_id){const h=huespedes.find(x=>x.id===editData.huesped_id);return h?.cedula||"";}return editData?.cliente_cedula||"";});
+  const[sugs,setSugs]=useState([]);
+  const huesped=huespedes.find(h=>h.id===f.huesped_id);
+  const saldo=Math.max(0,(parseInt(f.total)||0)-(parseInt(f.anticipo)||0));
+
+  const buscarH=(v)=>{
+    setBusqCed(v);
+    if(v.length<2){setSugs([]);return;}
+    const res=huespedes.filter(h=>String(h.cedula||"").includes(v)||`${h.nombre} ${h.apellidos}`.toLowerCase().includes(v.toLowerCase()));
+    setSugs(res.slice(0,5));
+    const exacto=huespedes.find(h=>String(h.cedula||"")===v);
+    if(exacto){setF(p=>({...p,huesped_id:exacto.id,cliente_nombre:`${exacto.nombre} ${exacto.apellidos}`,cliente_cedula:exacto.cedula,cliente_telefono:exacto.telefono||""}));setSugs([]);}
+  };
+  const selH=(h)=>{setBusqCed(h.cedula);setF(p=>({...p,huesped_id:h.id,cliente_nombre:`${h.nombre} ${h.apellidos}`,cliente_cedula:h.cedula,cliente_telefono:h.telefono||""}));setSugs([]);};
+  const limpiarH=()=>{setBusqCed("");setF(p=>({...p,huesped_id:"",cliente_cedula:"",cliente_telefono:""}));};
+
+  const save=()=>{
+    if(!f.cliente_nombre.trim())return setErr("El nombre del cliente es obligatorio");
+    if(!f.fecha_inicio||!f.fecha_fin)return setErr("Las fechas son obligatorias");
+    if(f.fecha_inicio>f.fecha_fin)return setErr("La fecha fin debe ser igual o posterior a la fecha inicio");
+    if((parseInt(f.anticipo)||0)>(parseInt(f.total)||0))return setErr("El anticipo no puede superar el total");
+    const conflicto=reservasSalon.find(r=>{
+      if(editData&&String(r.id)===String(editData.id))return false;
+      if(r.estado==="cancelado")return false;
+      return r.fecha_inicio<=f.fecha_fin&&r.fecha_fin>=f.fecha_inicio;
+    });
+    if(conflicto)return setErr(`⛔ Ya existe una reserva del ${fmtFecha(conflicto.fecha_inicio)} al ${fmtFecha(conflicto.fecha_fin)}`);
+    setErr("");
+    onSave({...f,total:parseInt(f.total)||0,anticipo:parseInt(f.anticipo)||0,saldo,personas:parseInt(f.personas)||1});
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:10,overflowY:"auto"}}>
+      <div style={{background:C.card,borderRadius:15,width:"100%",maxWidth:560,border:`1px solid ${C.border}`,animation:"fadeUp .2s ease",maxHeight:"97vh",overflowY:"auto"}}>
+        <div style={{background:"linear-gradient(135deg,#1a0a2e,#0e1628)",padding:"13px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:10}}>
+          <div style={{fontWeight:700,fontSize:14,color:"#E9D5FF"}}>{editData?"✏️ Editar Reserva Salón":"🎉 Nueva Reserva — Salón de Eventos"}</div>
+          <button onClick={onClose} style={{background:"#ffffff22",border:"none",color:"#E9D5FF",borderRadius:6,width:26,height:26,cursor:"pointer",fontSize:15}}>×</button>
+        </div>
+        <div style={{padding:18,display:"flex",flexDirection:"column",gap:13}}>
+
+          {/* Buscar huésped */}
+          <div style={{position:"relative"}}>
+            <div style={{color:C.accent2,fontSize:10,fontWeight:700,letterSpacing:.5,marginBottom:6}}>🔍 BUSCAR HUÉSPED (opcional) O INGRESAR DATOS EXTERNOS</div>
+            <input type="text" value={busqCed} onChange={e=>buscarH(e.target.value)}
+              placeholder="Cédula o nombre del huésped registrado..."
+              style={{background:C.surface,border:`1px solid ${huesped?C.green:C.border}`,borderRadius:7,padding:"9px 12px",color:C.text,fontSize:12,outline:"none",width:"100%"}}/>
+            {sugs.length>0&&(
+              <div style={{position:"absolute",top:"100%",left:0,right:0,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,zIndex:50,overflow:"hidden",boxShadow:"0 8px 28px #00000080",marginTop:3}}>
+                {sugs.map(h=>(
+                  <button key={h.id} onClick={()=>selH(h)} style={{width:"100%",background:"transparent",border:"none",borderBottom:`1px solid ${C.border}22`,padding:"9px 14px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:9}}
+                    onMouseEnter={e=>e.currentTarget.style.background=C.surface}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                    <span style={{fontSize:16}}>👤</span>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:12}}>{h.nombre} {h.apellidos}</div>
+                      <div style={{fontSize:10,color:C.muted}}>🪪 {h.cedula} · 📞 {h.telefono}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {huesped&&(
+              <div style={{marginTop:7,background:`${C.green}15`,border:`1px solid ${C.green}44`,borderRadius:8,padding:"9px 12px",display:"flex",alignItems:"center",gap:9}}>
+                <span style={{fontSize:18}}>✅</span>
+                <div style={{flex:1}}><div style={{fontWeight:700,fontSize:12,color:C.green}}>{huesped.nombre} {huesped.apellidos}</div><div style={{fontSize:10,color:C.muted}}>📞 {huesped.telefono}</div></div>
+                <button onClick={limpiarH} style={{background:C.red+"22",border:"none",color:C.red,borderRadius:5,padding:"3px 8px",cursor:"pointer",fontSize:10}}>✕</button>
+              </div>
+            )}
+          </div>
+
+          {/* Datos cliente */}
+          <div>
+            <div style={{color:C.muted,fontSize:9,fontWeight:700,letterSpacing:.5,marginBottom:7}}>DATOS DEL CLIENTE</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <Inp label="NOMBRE COMPLETO *" value={f.cliente_nombre} onChange={v=>setF(p=>({...p,cliente_nombre:v}))} placeholder="Nombre del cliente o empresa"/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <Inp label="CÉDULA / NIT" value={f.cliente_cedula||""} onChange={v=>setF(p=>({...p,cliente_cedula:v}))} placeholder="1098765432"/>
+                <Inp label="TELÉFONO" value={f.cliente_telefono||""} onChange={v=>setF(p=>({...p,cliente_telefono:v}))} placeholder="3101234567"/>
+              </div>
+            </div>
+          </div>
+
+          {/* Fechas y horario */}
+          <div>
+            <div style={{color:C.muted,fontSize:9,fontWeight:700,letterSpacing:.5,marginBottom:7}}>FECHAS Y HORARIO</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              <Inp label="FECHA INICIO *" value={f.fecha_inicio} onChange={v=>setF(p=>({...p,fecha_inicio:v}))} type="date"/>
+              <Inp label="FECHA FIN *" value={f.fecha_fin} onChange={v=>setF(p=>({...p,fecha_fin:v}))} type="date"/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+              <Inp label="HORA INICIO" value={f.hora_inicio||"08:00"} onChange={v=>setF(p=>({...p,hora_inicio:v}))} type="time"/>
+              <Inp label="HORA FIN" value={f.hora_fin||"18:00"} onChange={v=>setF(p=>({...p,hora_fin:v}))} type="time"/>
+              <Inp label="PERSONAS" value={f.personas||1} onChange={v=>setF(p=>({...p,personas:v.replace(/[^0-9]/g,"")}))} placeholder="50"/>
+            </div>
+          </div>
+
+          {/* Tipo de evento */}
+          <Inp label="TIPO DE EVENTO" value={f.evento||""} onChange={v=>setF(p=>({...p,evento:v}))}
+            options={[{v:"",l:"— Selecciona —",disabled:true},{v:"boda",l:"💍 Boda"},{v:"cumpleanos",l:"🎂 Cumpleaños"},{v:"empresa",l:"🏢 Evento Empresarial"},{v:"graduacion",l:"🎓 Graduación"},{v:"conferencia",l:"🎤 Conferencia"},{v:"reunion",l:"📋 Reunión"},{v:"otro",l:"🎪 Otro"}]}/>
+
+          {/* Cobros */}
+          <div style={{background:C.surface,borderRadius:10,padding:13,border:`1px solid ${C.green}33`}}>
+            <div style={{color:C.muted,fontSize:9,fontWeight:700,letterSpacing:.5,marginBottom:9}}>COBROS</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              <div>
+                <label style={{color:C.green,fontSize:9,fontWeight:700,display:"block",marginBottom:4}}>TOTAL A COBRAR</label>
+                <input type="text" inputMode="numeric" value={f.total||0}
+                  onChange={e=>setF(p=>({...p,total:e.target.value.replace(/[^0-9]/g,"")}))}
+                  onFocus={e=>e.target.select()}
+                  style={{background:C.card,border:`1px solid ${C.green}55`,borderRadius:7,padding:"9px 12px",color:C.green,fontSize:14,fontWeight:800,outline:"none",width:"100%"}}/>
+              </div>
+              <div>
+                <label style={{color:C.accent,fontSize:9,fontWeight:700,display:"block",marginBottom:4}}>ANTICIPO / ABONO</label>
+                <input type="text" inputMode="numeric" value={f.anticipo||0}
+                  onChange={e=>setF(p=>({...p,anticipo:e.target.value.replace(/[^0-9]/g,"")}))}
+                  onFocus={e=>e.target.select()}
+                  style={{background:C.card,border:`1px solid ${C.accent}55`,borderRadius:7,padding:"9px 12px",color:C.accent,fontSize:14,fontWeight:800,outline:"none",width:"100%"}}/>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <Inp label="MÉTODO DE PAGO" value={f.pago||"pendiente"} onChange={v=>setF(p=>({...p,pago:v}))}
+                options={[{v:"pendiente",l:"⏳ Pendiente"},{v:"efectivo",l:"💵 Efectivo"},{v:"tarjeta",l:"💳 Tarjeta"},{v:"transferencia",l:"🏦 Transferencia"},{v:"cortesia",l:"🎁 Cortesía"}]}/>
+              <Inp label="ESTADO" value={f.estado||"reservado"} onChange={v=>setF(p=>({...p,estado:v}))}
+                options={[{v:"reservado",l:"📅 Reservado"},{v:"confirmado",l:"✅ Confirmado"},{v:"en_curso",l:"🔴 En Curso"},{v:"completado",l:"✔️ Completado"},{v:"cancelado",l:"❌ Cancelado"}]}/>
+            </div>
+            {(parseInt(f.total)||0)>0&&(
+              <div style={{marginTop:9,background:saldo>0?C.red+"12":C.green+"12",borderRadius:7,padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:11,color:C.muted}}>Saldo pendiente:</span>
+                <span style={{fontSize:16,fontWeight:900,color:saldo>0?C.red:C.green}}>{fmt(saldo)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label style={{color:C.muted,fontSize:9,fontWeight:700,display:"block",marginBottom:4}}>NOTAS / OBSERVACIONES</label>
+            <textarea value={f.notas||""} onChange={e=>setF(p=>({...p,notas:e.target.value}))} rows={2}
+              placeholder="Requisitos especiales, decoración, catering..."
+              style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 10px",color:C.text,fontSize:12,outline:"none",width:"100%",resize:"vertical"}}/>
+          </div>
+
+          {err&&<div style={{background:"#EF444415",border:"1px solid #EF444440",borderRadius:7,padding:"8px 13px",color:C.red,fontSize:11}}>⚠️ {err}</div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+            <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,padding:10,color:C.muted,fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancelar</button>
+            <button onClick={save} disabled={saving} style={{background:`linear-gradient(135deg,#7C3AED,#0EA5E9)`,border:"none",borderRadius:7,padding:10,color:"white",fontSize:12,fontWeight:700,cursor:saving?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+              {saving&&<Spinner size={14} color="white"/>}🎉 {editData?"Guardar Cambios":"Confirmar Reserva"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   MODAL RECIBO SALÓN
+══════════════════════════════════════════ */
+function ModalReciboSalon({item,onClose}){
+  const hoy=new Date();
+  const fmtHoy=`${String(hoy.getDate()).padStart(2,"0")}/${String(hoy.getMonth()+1).padStart(2,"0")}/${hoy.getFullYear()}`;
+  const folio=`HC-SAL-${String(item.id||"").slice(-6).toUpperCase()}`;
+  const EVENTO_LABELS={boda:"💍 Boda",cumpleanos:"🎂 Cumpleaños",empresa:"🏢 Evento Empresarial",graduacion:"🎓 Graduación",conferencia:"🎤 Conferencia",reunion:"📋 Reunión",otro:"🎪 Otro"};
+  const PAGO_LABELS={pendiente:"⏳ Pendiente",efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía"};
+  const total=parseInt(item.total)||0;
+  const anticipo=parseInt(item.anticipo)||0;
+  const saldo=Math.max(0,total-anticipo);
+  const imprimir=()=>{
+    const w=window.open("","_blank");
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo Salón — ${folio}</title>
+    <style>body{font-family:Arial,sans-serif;max-width:480px;margin:32px auto;color:#1e293b;padding:0 16px;}
+    .hdr{text-align:center;border-bottom:3px solid #7C3AED;padding-bottom:14px;margin-bottom:18px;}
+    .logo{font-size:32px;}.brand{font-size:20px;font-weight:900;color:#7C3AED;letter-spacing:2px;}
+    .folio{font-size:11px;color:#64748B;margin-top:4px;}.row{display:flex;justify-content:space-between;margin:4px 0;font-size:12px;}
+    .label{color:#64748B;}.val{font-weight:600;}.total-row{border-top:2px solid #e2e8f0;margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;font-size:16px;font-weight:900;}
+    .total-val{color:#10B981;}.saldo-val{color:#EF4444;}.section{margin:14px 0;}.stitle{font-size:10px;font-weight:700;color:#64748B;letter-spacing:.8px;margin-bottom:6px;text-transform:uppercase;}
+    .badge{display:inline-block;background:#7C3AED20;color:#7C3AED;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;}
+    .footer{text-align:center;margin-top:28px;font-size:10px;color:#94A3B8;border-top:1px solid #e2e8f0;padding-top:12px;}
+    @media print{body{margin:0;padding:0;max-width:none;}</style></head><body>
+    <div class="hdr"><div class="logo">🌊</div><div class="brand">HOTEL CALA</div><div class="folio">RECIBO SALÓN DE EVENTOS · ${folio} · ${fmtHoy}</div></div>
+    <div class="section"><div class="stitle">Cliente</div>
+    <div class="row"><span class="label">Nombre:</span><span class="val">${item.cliente_nombre||"—"}</span></div>
+    ${item.cliente_cedula?`<div class="row"><span class="label">Cédula/NIT:</span><span class="val">${item.cliente_cedula}</span></div>`:""}
+    ${item.cliente_telefono?`<div class="row"><span class="label">Teléfono:</span><span class="val">${item.cliente_telefono}</span></div>`:""}
+    </div>
+    <div class="section"><div class="stitle">Evento</div>
+    <div class="row"><span class="label">Tipo:</span><span class="val">${EVENTO_LABELS[item.evento]||item.evento||"—"}</span></div>
+    <div class="row"><span class="label">Fecha:</span><span class="val">${fmtFecha(item.fecha_inicio)}${item.fecha_inicio!==item.fecha_fin?" → "+fmtFecha(item.fecha_fin):""}</span></div>
+    <div class="row"><span class="label">Horario:</span><span class="val">${item.hora_inicio||"—"} — ${item.hora_fin||"—"}</span></div>
+    <div class="row"><span class="label">Personas:</span><span class="val">${item.personas||"—"}</span></div>
+    ${item.notas?`<div class="row"><span class="label">Notas:</span><span class="val">${item.notas}</span></div>`:""}
+    </div>
+    <div class="section">
+    <div class="row"><span class="label">Pago:</span><span class="val">${PAGO_LABELS[item.pago]||item.pago||"—"}</span></div>
+    ${anticipo>0&&anticipo<total?`<div class="row"><span class="label">Anticipo recibido:</span><span class="val" style="color:#0EA5E9">${new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(anticipo)}</span></div>`:""}
+    <div class="total-row"><span>TOTAL</span><span class="total-val">${new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(total)}</span></div>
+    ${saldo>0?`<div class="total-row" style="font-size:13px"><span>SALDO PENDIENTE</span><span class="saldo-val">${new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(saldo)}</span></div>`:""}
+    </div>
+    <div class="footer">Hotel Cala · Recibo generado el ${fmtHoy}<br>Conserve este documento como comprobante</div>
+    </body></html>`);
+    w.document.close();setTimeout(()=>w.print(),400);
+  };
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:C.card,borderRadius:15,width:"100%",maxWidth:420,border:`1px solid #7C3AED44`,animation:"fadeUp .2s ease"}}>
+        <div style={{background:"linear-gradient(135deg,#1a0a2e,#0e1628)",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontWeight:800,fontSize:14,color:"#E9D5FF"}}>🧾 Recibo — Salón de Eventos</div>
+          <button onClick={onClose} style={{background:"#ffffff22",border:"none",color:"#E9D5FF",borderRadius:6,width:26,height:26,cursor:"pointer",fontSize:16}}>×</button>
+        </div>
+        <div style={{padding:18}}>
+          {/* Preview recibo */}
+          <div style={{background:"white",borderRadius:10,padding:16,marginBottom:14,color:"#1e293b"}}>
+            <div style={{textAlign:"center",borderBottom:"2px solid #7C3AED",paddingBottom:10,marginBottom:12}}>
+              <div style={{fontSize:28}}>🌊</div>
+              <div style={{fontSize:14,fontWeight:900,color:"#7C3AED",letterSpacing:2}}>HOTEL CALA</div>
+              <div style={{fontSize:9,color:"#94A3B8",marginTop:3}}>SALÓN DE EVENTOS · {folio} · {fmtHoy}</div>
+            </div>
+            <div style={{fontSize:10,color:"#64748B",marginBottom:2,fontWeight:700}}>CLIENTE</div>
+            <div style={{fontWeight:700,fontSize:12,marginBottom:1}}>{item.cliente_nombre||"—"}</div>
+            {item.cliente_cedula&&<div style={{fontSize:10,color:"#94A3B8",marginBottom:8}}>Doc: {item.cliente_cedula}</div>}
+            <div style={{fontSize:10,color:"#64748B",marginBottom:4,fontWeight:700}}>EVENTO</div>
+            <div style={{fontSize:11,marginBottom:2}}>{EVENTO_LABELS[item.evento]||item.evento||"Evento"}</div>
+            <div style={{fontSize:10,color:"#64748B",marginBottom:8}}>
+              📅 {fmtFecha(item.fecha_inicio)}{item.fecha_inicio!==item.fecha_fin?" → "+fmtFecha(item.fecha_fin):""} · ⏰ {item.hora_inicio}–{item.hora_fin} · 👥 {item.personas}p
+            </div>
+            <div style={{borderTop:"1px solid #e2e8f0",paddingTop:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontWeight:900,fontSize:15}}>
+                <span>TOTAL</span><span style={{color:"#10B981"}}>{fmt(total)}</span>
+              </div>
+              {anticipo>0&&anticipo<total&&<>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#0EA5E9",marginTop:3}}><span>Anticipo</span><span>− {fmt(anticipo)}</span></div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:800,color:saldo>0?"#EF4444":"#10B981",marginTop:2}}><span>SALDO</span><span>{fmt(saldo)}</span></div>
+              </>}
+            </div>
+            <div style={{marginTop:8,background:"#f1f5f9",borderRadius:5,padding:"4px 8px",fontSize:10,color:"#64748B"}}>
+              Pago: <b>{PAGO_LABELS[item.pago]||item.pago}</b>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,padding:9,color:C.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>Cerrar</button>
+            <button onClick={imprimir} style={{background:`linear-gradient(135deg,#7C3AED,#0EA5E9)`,border:"none",borderRadius:7,padding:9,color:"white",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+              🖨️ Imprimir / PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
   const[u,setU]=useState("");const[p,setP]=useState("");const[err,setErr]=useState("");const[load,setLoad]=useState(false);
   const go=async()=>{
     setLoad(true);setErr("");
@@ -1977,6 +2287,13 @@ function App(){
   const[emailModal,setEmailModal]=useState(null);// {item, tipo} — envío de baucher por correo
   const[reportePrintModal,setReportePrintModal]=useState(false);// modal impresión reporte mensual
   const[delReporte,setDelReporte]=useState(null);// reserva a borrar desde reportes
+  // ── Salón de Eventos ──
+  const[reservasSalon,setResSalon]=useState([]);
+  const[modalSalon,setModalSalon]=useState(false);
+  const[editSalon,setEditSalon]=useState(null);
+  const[delSalon,setDelSalon]=useState(null);
+  const[reciboSalon,setReciboSalon]=useState(null);
+  const[filtroSalon,setFiltroSalon]=useState("todos");
   const alertadosRef=useRef(new Set());// evitar alertar dos veces el mismo evento
   const intervalRef=useRef(null);
   const isAdmin=user?.role==="admin";
@@ -2326,6 +2643,22 @@ function App(){
     finally{setSaving(false);setDelHab(null);}
   };
 
+  /* ── CRUD Salón ── */
+  const saveSalon=async(data)=>{
+    setSaving(true);
+    try{
+      const id=editSalon?editSalon.id:("SAL"+Date.now());
+      const guardada={...data,id};
+      if(editSalon){setResSalon(p=>p.map(r=>r.id===editSalon.id?guardada:r));showToast("Reserva salón actualizada ✓");}
+      else{setResSalon(p=>[...p,guardada]);showToast("Reserva salón creada ✓");}
+    }catch{showToast("Error","err");}
+    finally{setSaving(false);setModalSalon(false);setEditSalon(null);}
+  };
+  const delSalonFn=async()=>{
+    setResSalon(p=>p.filter(r=>r.id!==delSalon.id));
+    showToast("Reserva eliminada","err");setDelSalon(null);
+  };
+
   /* ── Config servicios ── */
   const guardarConfig=async()=>{
     setSaving(true);
@@ -2356,6 +2689,7 @@ function App(){
     {id:"habitaciones",icon:"🏠",label:"Habitaciones"},
     {id:"huespedes",icon:"👤",label:"Huéspedes"},
     {id:"zonas",icon:"🌊",label:"Zonas Húmedas"},
+    {id:"salon",icon:"🎉",label:"Salón Eventos"},
     {id:"agenda",icon:"🗓",label:"Agenda"},
     {id:"reportes",icon:"📊",label:"Reportes"},
     ...(isAdmin?[{id:"config",icon:"⚙️",label:"Configuración"}]:[]),
@@ -2376,8 +2710,11 @@ function App(){
       {modal&&<ModalReserva reservas={reservas} onSave={saveRes} onClose={()=>{setModal(false);setEdit(null);}} editData={editItem} svc={svc} saving={saving} huespedes={huespedes} reservasHab={reservasHab}/>}
       {modalHab&&<ModalReservaHab onSave={saveResHab} onClose={()=>{setModalHab(false);setEditHab(null);}} editData={editHab} saving={saving} huespedes={huespedes} habitaciones={habitaciones} reservasHab={reservasHab} temporadas={temporadas}/>}
       {modalHuesped&&<ModalHuesped onSave={saveHuesped} onClose={()=>{setModalHuesped(false);setEditHuesped(null);}} editData={editHuesped} saving={saving}/>}
+      {modalSalon&&<ModalSalon onSave={saveSalon} onClose={()=>{setModalSalon(false);setEditSalon(null);}} editData={editSalon} saving={saving} huespedes={huespedes} reservasSalon={reservasSalon}/>}
+      {reciboSalon&&<ModalReciboSalon item={reciboSalon} onClose={()=>setReciboSalon(null)}/>}
       {delItem&&<ModalDel reserva={delItem} onOk={delRes} onClose={()=>setDel(null)} svc={svc} saving={saving}/>}
       {delHab&&<ModalDel reserva={{...delHab,nombre:huespedes.find(h=>h.id===delHab.huesped_id)?.nombre||"—"}} onOk={delResHabFn} onClose={()=>setDelHab(null)} svc={svc} saving={saving} esHab/>}
+      {delSalon&&<ModalDel reserva={{...delSalon,nombre:delSalon.cliente_nombre||"—",servicio:"salon",date:delSalon.fecha_inicio,hora:delSalon.hora_inicio}} onOk={delSalonFn} onClose={()=>setDelSalon(null)} svc={{salon:{icono:"🎉",nombre:"Salón de Eventos"}}} saving={saving}/>}
       {delHuesped&&<ModalDel reserva={{...delHuesped,nombre:`${delHuesped.nombre} ${delHuesped.apellidos}`,total:0}} onOk={delHuespedFn} onClose={()=>setDelHuesped(null)} svc={svc} saving={saving}/>}
       {reciboItem&&<ModalRecibo item={reciboItem.item} tipo={reciboItem.tipo} onClose={()=>setReciboItem(null)} onEmail={()=>{setEmailModal(reciboItem);setReciboItem(null);}} svc={svc} huespedes={huespedes} habitaciones={habitaciones}/>}
       {emailModal&&<ModalEmailBaucher item={emailModal.item} tipo={emailModal.tipo} onClose={()=>setEmailModal(null)} svc={svc} huespedes={huespedes} habitaciones={habitaciones} showToast={showToast}/>}
@@ -3050,6 +3387,115 @@ function App(){
           </div>
         )}
 
+        {/* ══ SALÓN DE EVENTOS ══ */}
+        {vista==="salon"&&(()=>{
+          const EVENTO_LABELS={boda:"💍 Boda",cumpleanos:"🎂 Cumpleaños",empresa:"🏢 Empresarial",graduacion:"🎓 Graduación",conferencia:"🎤 Conferencia",reunion:"📋 Reunión",otro:"🎪 Otro"};
+          const EST_SALON={reservado:{l:"RESERVADO",c:C.yellow},confirmado:{l:"CONFIRMADO",c:C.accent},en_curso:{l:"EN CURSO",c:C.red},completado:{l:"COMPLETADO",c:C.green},cancelado:{l:"CANCELADO",c:C.muted}};
+          const filtradas=reservasSalon.filter(r=>{
+            if(filtroSalon==="activos")return r.estado==="reservado"||r.estado==="confirmado"||r.estado==="en_curso";
+            if(filtroSalon==="completados")return r.estado==="completado";
+            if(filtroSalon==="cancelados")return r.estado==="cancelado";
+            return true;
+          });
+          const ingSalon=reservasSalon.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.anticipo)||0),0);
+          const saldoTotal=reservasSalon.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+Math.max(0,(parseInt(r.total)||0)-(parseInt(r.anticipo)||0)),0);
+          const proximas=reservasSalon.filter(r=>(r.estado==="reservado"||r.estado==="confirmado")&&r.fecha_inicio>=todayKey).length;
+          return(
+          <div style={{display:"flex",flexDirection:"column",gap:14,animation:"fadeUp .2s ease"}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+              <div>
+                <h2 style={{margin:0,fontSize:16,fontWeight:900,background:`linear-gradient(135deg,#7C3AED,#0EA5E9)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>🎉 Salón de Eventos</h2>
+                <div style={{color:C.muted,fontSize:10,marginTop:2}}>Gestión de reservas y eventos especiales</div>
+              </div>
+              <button onClick={()=>{setEditSalon(null);setModalSalon(true);}}
+                style={{background:`linear-gradient(135deg,#7C3AED,#0EA5E9)`,border:"none",borderRadius:8,padding:"9px 18px",color:"white",fontWeight:700,cursor:"pointer",fontSize:12}}>
+                + Nueva Reserva Salón
+              </button>
+            </div>
+
+            {/* KPIs */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+              {[
+                {l:"Total reservas",v:reservasSalon.length,c:C.accent2,i:"🎉"},
+                {l:"Próximas / Activas",v:proximas,c:C.yellow,i:"📅"},
+                {l:"Ingresos cobrados",v:fmt(ingSalon),c:C.green,i:"💰"},
+                {l:"Saldo por cobrar",v:fmt(saldoTotal),c:saldoTotal>0?C.red:C.muted,i:"⏳"},
+              ].map((k,i)=>(
+                <div key={i} style={{background:C.card,borderRadius:11,padding:"12px 14px",border:`1px solid ${k.c}25`,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",top:8,right:10,fontSize:22,opacity:.12}}>{k.i}</div>
+                  <div style={{fontSize:9,color:C.muted,fontWeight:700,marginBottom:3,letterSpacing:.5}}>{k.l.toUpperCase()}</div>
+                  <div style={{color:k.c,fontSize:18,fontWeight:800}}>{k.v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filtros */}
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {[["todos","Todos"],["activos","📅 Activos"],["completados","✅ Completados"],["cancelados","❌ Cancelados"]].map(([k,l])=>(
+                <button key={k} onClick={()=>setFiltroSalon(k)}
+                  style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${filtroSalon===k?"#7C3AED":C.border}`,background:filtroSalon===k?"#7C3AED18":"transparent",color:filtroSalon===k?"#A78BFA":C.muted,fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {/* Tabla */}
+            {filtradas.length===0?(
+              <div style={{textAlign:"center",padding:"40px 0",color:C.muted,background:C.card,borderRadius:11,border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:40,marginBottom:8}}>🎉</div>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:4}}>Sin reservas de salón</div>
+                <div style={{fontSize:11}}>Crea la primera reserva con el botón de arriba</div>
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[...filtradas].sort((a,b)=>a.fecha_inicio>b.fecha_inicio?1:-1).map((r,idx)=>{
+                  const ec=EST_SALON[r.estado]||{l:r.estado,c:C.muted};
+                  const pc=PAGO_T[r.pago]||{l:r.pago||"Pendiente",c:C.yellow};
+                  const total=parseInt(r.total)||0;
+                  const anticipo=parseInt(r.anticipo)||0;
+                  const saldo=Math.max(0,total-anticipo);
+                  const esProxima=(r.estado==="reservado"||r.estado==="confirmado")&&r.fecha_inicio>=todayKey;
+                  const esHoy=r.fecha_inicio===todayKey||r.fecha_fin===todayKey;
+                  return(
+                    <div key={r.id} style={{background:C.card,borderRadius:11,border:`1.5px solid ${esHoy?"#7C3AED88":esProxima?"#7C3AED33":C.border}`,padding:14,transition:"all .15s"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10}}>
+                          <div style={{width:40,height:40,borderRadius:9,background:"#7C3AED22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+                            {EVENTO_LABELS[r.evento]?.slice(0,2)||"🎉"}
+                          </div>
+                          <div>
+                            <div style={{fontWeight:800,fontSize:13}}>{r.cliente_nombre||"—"}</div>
+                            <div style={{color:C.muted,fontSize:10,marginTop:1}}>{EVENTO_LABELS[r.evento]||r.evento||"Evento"} · 👥 {r.personas} personas</div>
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+                          <Tag text={ec.l} color={ec.c}/>
+                          {esHoy&&<Tag text="HOY" color="#7C3AED"/>}
+                        </div>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:10,background:C.surface,borderRadius:8,padding:"9px 11px"}}>
+                        <div><div style={{color:C.muted,fontSize:9,fontWeight:700}}>FECHA</div><div style={{fontSize:11,fontWeight:600,marginTop:2}}>{fmtFecha(r.fecha_inicio)}{r.fecha_inicio!==r.fecha_fin?" → "+fmtFecha(r.fecha_fin):""}</div></div>
+                        <div><div style={{color:C.muted,fontSize:9,fontWeight:700}}>HORARIO</div><div style={{fontSize:11,fontWeight:600,marginTop:2}}>{r.hora_inicio||"—"} — {r.hora_fin||"—"}</div></div>
+                        <div><div style={{color:C.muted,fontSize:9,fontWeight:700}}>TOTAL</div><div style={{fontSize:13,fontWeight:800,color:C.green,marginTop:2}}>{fmt(total)}</div></div>
+                        {anticipo>0&&<div><div style={{color:C.muted,fontSize:9,fontWeight:700}}>ANTICIPO</div><div style={{fontSize:11,fontWeight:700,color:C.accent,marginTop:2}}>{fmt(anticipo)}</div></div>}
+                        {saldo>0&&<div><div style={{color:C.muted,fontSize:9,fontWeight:700}}>SALDO</div><div style={{fontSize:13,fontWeight:800,color:C.red,marginTop:2}}>{fmt(saldo)}</div></div>}
+                        <div><div style={{color:C.muted,fontSize:9,fontWeight:700}}>PAGO</div><div style={{marginTop:3}}><Tag text={pc.l} color={pc.c}/></div></div>
+                      </div>
+                      {r.notas&&<div style={{fontSize:10,color:C.muted,marginBottom:8,padding:"5px 9px",background:C.surface,borderRadius:6,borderLeft:`3px solid #7C3AED55`}}>📝 {r.notas}</div>}
+                      <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}>
+                        <button onClick={()=>{setEditSalon(r);setModalSalon(true);}} style={{background:C.accent+"22",border:"none",color:C.accent,borderRadius:6,padding:"5px 11px",cursor:"pointer",fontSize:10,fontWeight:700}}>✏️ Editar</button>
+                        <button onClick={()=>setReciboSalon(r)} style={{background:C.green+"22",border:"none",color:C.green,borderRadius:6,padding:"5px 11px",cursor:"pointer",fontSize:10,fontWeight:700}}>🧾 Recibo</button>
+                        {isAdmin&&<button onClick={()=>setDelSalon(r)} style={{background:C.red+"22",border:"none",color:C.red,borderRadius:6,padding:"5px 11px",cursor:"pointer",fontSize:10,fontWeight:700}}>🗑️</button>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>);
+        })()}
+
         {/* ══ AGENDA — CALENDAR TIMELINE ══ */}
         {vista==="agenda"&&(()=>{
           // Generar array de días
@@ -3198,11 +3644,53 @@ function App(){
                   </React.Fragment>
                 );
               })}
+
+              {/* ── Fila Salón de Eventos ── */}
+              {reservasSalon.length>0&&(
+                <React.Fragment>
+                  <div style={{display:"flex",background:"#7C3AED12",borderBottom:`1px solid ${C.border}22`}}>
+                    <div style={{width:COL_HAB,minWidth:COL_HAB,padding:"5px 10px",fontSize:9,fontWeight:800,color:"#A78BFA",borderRight:`1px solid ${C.border}`,flexShrink:0,letterSpacing:.5}}>SALÓN EVENTOS</div>
+                    <div style={{flex:1}}/>
+                  </div>
+                  <div style={{display:"flex",borderBottom:`1px solid ${C.border}15`,minHeight:42}}>
+                    <div style={{width:COL_HAB,minWidth:COL_HAB,padding:"6px 10px",borderRight:`1px solid ${C.border}`,flexShrink:0,display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{fontWeight:800,fontSize:11,color:"#A78BFA"}}>🎉</span>
+                      <span style={{fontSize:8,color:C.dim}}>Salón</span>
+                    </div>
+                    <div style={{display:"flex",flex:1,position:"relative"}}>
+                      {dias.map((k,di)=>{
+                        const esHoy=k===hoy;
+                        const res=reservasSalon.find(r=>r.estado!=="cancelado"&&r.fecha_inicio<=k&&r.fecha_fin>=k);
+                        const esInicio=res&&res.fecha_inicio===k;
+                        return(
+                          <div key={k} style={{width:COL_DIA,minWidth:COL_DIA,flexShrink:0,borderRight:`1px solid ${C.border}15`,background:esHoy?C.accent+"08":"transparent",position:"relative",padding:"2px 0"}}>
+                            {res&&esInicio&&(()=>{
+                              const diaFin=dias.indexOf(res.fecha_fin);
+                              const span=diaFin>=0?diaFin-di+1:dias.length-di;
+                              const bColor="#7C3AED";
+                              return(
+                                <div onClick={()=>{setEditSalon(res);setModalSalon(true);}}
+                                  style={{position:"absolute",left:2,top:4,width:`calc(${span*COL_DIA}px - 4px)`,height:34,borderRadius:5,
+                                    background:`linear-gradient(135deg,${bColor}33,${bColor}18)`,border:`1.5px solid ${bColor}88`,
+                                    cursor:"pointer",zIndex:2,display:"flex",alignItems:"center",padding:"0 7px",gap:4,overflow:"hidden"}}
+                                  title={`${res.cliente_nombre} · ${fmtFecha(res.fecha_inicio)} → ${fmtFecha(res.fecha_fin)}`}>
+                                  <div style={{width:6,height:6,borderRadius:"50%",background:bColor,flexShrink:0}}/>
+                                  <span style={{fontSize:9,fontWeight:700,color:bColor,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{res.cliente_nombre||"Evento"}</span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </React.Fragment>
+              )}
             </div>
 
             {/* Leyenda */}
             <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-              {[[C.red,"Ocupada"],[C.yellow,"Reservada"],[C.accent,"Hoy"]].map(([c,l])=>(
+              {[[C.red,"Ocupada"],[C.yellow,"Reservada"],[C.accent,"Hoy"],["#7C3AED","Salón"]].map(([c,l])=>(
                 <div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.muted}}>
                   <div style={{width:12,height:12,borderRadius:3,background:c+"33",border:`1.5px solid ${c}88`}}/>
                   {l}
