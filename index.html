@@ -1424,7 +1424,7 @@ Hotel Cala · Gracias por su preferencia 🌊`;
 /* ══════════════════════════════════════════
    MODAL REPORTE MENSUAL IMPRIMIBLE
 ══════════════════════════════════════════ */
-function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,repFiltro,repDesde,repHasta,repTab,onClose}){
+function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,repFiltro,repDesde,repHasta,repTab,onClose,reservasSalon}){
   const hoy=new Date();const hoyK=dateKey(hoy);
   const getDesde=()=>{
     if(repFiltro==="hoy")return hoyK;
@@ -1435,16 +1435,21 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
   };
   const desde=getDesde(),hasta=repFiltro==="custom"?repHasta:hoyK;
   const _dn=(a,b)=>{if(!a||!b)return 1;const[ay,am,ad]=a.split("-").map(Number);const[by,bm,bd]=b.split("-").map(Number);return Math.max(1,Math.round((new Date(by,bm-1,bd)-new Date(ay,am-1,ad))/(1000*60*60*24)));};
-
   const fmtHoy=`${String(hoy.getDate()).padStart(2,"0")}/${String(hoy.getMonth()+1).padStart(2,"0")}/${hoy.getFullYear()}`;
   const periodoLabel=repFiltro==="hoy"?"Hoy":repFiltro==="semana"?"Esta semana":repFiltro==="mes"?`Mes ${MESES_ES[hoy.getMonth()]} ${hoy.getFullYear()}`:repFiltro==="año"?`Año ${hoy.getFullYear()}`:`${desde} al ${hasta}`;
 
+  const resHabF=reservasHab.filter(r=>r.checkin>=desde&&r.checkin<=hasta);
+  const resZonF=reservas.filter(r=>r.date>=desde&&r.date<=hasta);
+  const resSalF=(reservasSalon||[]).filter(r=>r.fecha_inicio>=desde&&r.fecha_inicio<=hasta);
+
   const imprimir=()=>{
-    const resHabF=reservasHab.filter(r=>r.checkin>=desde&&r.checkin<=hasta);
-    const resF=reservas.filter(r=>r.date>=desde&&r.date<=hasta);
     const ingHab=resHabF.reduce((a,r)=>{const h=habitaciones.find(x=>x.num===r.hab);if(!h)return a;const tp=(parseInt(r.adultos)||1)+(parseInt(r.ninos)||0)+(parseInt(r.mascotas)||0);return a+h.precio*tp*_dn(r.checkin,r.checkout);},0);
-    const ingZonas=resF.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.total)||0),0);
+    const ingZonas=resZonF.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.total)||0),0);
     const pendHab=resHabF.reduce((a,r)=>{const h=habitaciones.find(x=>x.num===r.hab);if(!h)return a;const tp=(parseInt(r.adultos)||1)+(parseInt(r.ninos)||0)+(parseInt(r.mascotas)||0);const total=h.precio*tp*_dn(r.checkin,r.checkout);return a+Math.max(0,total-(parseInt(r.anticipo)||0));},0);
+    const ingSalon=resSalF.filter(r=>r.estado!=="cancelado"&&r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.anticipo)||0),0);
+    const pendSalon=resSalF.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+Math.max(0,(parseInt(r.total)||0)-(parseInt(r.anticipo)||0)),0);
+    const totalIngresos=ingHab+ingZonas+ingSalon;
+    const EVENTO_L={boda:"💍 Boda",cumpleanos:"🎂 Cumpleaños",empresa:"🏢 Empresarial",graduacion:"🎓 Graduación",conferencia:"🎤 Conferencia",reunion:"📋 Reunión",otro:"🎪 Otro"};
 
     const habRows=resHabF.map(r=>{
       const h=huespedes.find(x=>x.id===r.huesped_id);
@@ -1457,52 +1462,46 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       return`<tr>
         <td>${r.hab}</td>
         <td>${h?`${h.nombre} ${h.apellidos}`:"—"}<br/><span style="font-size:9px;color:#64748B">${h?.cedula||""}</span></td>
-        <td>${fmtFecha(r.checkin)}</td>
-        <td>${fmtFecha(r.checkout)}</td>
-        <td style="text-align:center">${noches}</td>
-        <td style="text-align:center">${tp}p</td>
+        <td>${fmtFecha(r.checkin)}</td><td>${fmtFecha(r.checkout)}</td>
+        <td style="text-align:center">${noches}</td><td style="text-align:center">${tp}p</td>
         <td style="text-align:right;color:#10B981;font-weight:700">${fmt(total)}</td>
         <td style="text-align:right;color:#0EA5E9">${anticipo>0?fmt(anticipo):"—"}</td>
         <td style="text-align:right;color:${saldo>0?"#EF4444":"#10B981"};font-weight:700">${fmt(saldo)}</td>
-        <td><span style="background:${r.estado==="ocupada"?"#10B98120":r.estado==="disponible"?"#0EA5E920":"#F59E0B20"};color:${r.estado==="ocupada"?"#10B981":r.estado==="disponible"?"#0EA5E9":"#F59E0B"};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700">${(r.estado||"").toUpperCase()}</span></td>
-        <td>${r.pago||"—"}</td>
-      </tr>`;
+        <td><span style="background:${r.estado==="ocupada"?"#10B98120":"#0EA5E920"};color:${r.estado==="ocupada"?"#10B981":"#0EA5E9"};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700">${(r.estado||"").toUpperCase()}</span></td>
+        <td>${r.pago||"—"}</td></tr>`;
     }).join("");
 
-    const zonasRows=resF.map(r=>{
-      const sv=svc[r.servicio];
-      const esH=r.tipo==="huesped";
+    const zonasRows=resZonF.map(r=>{
+      const sv=svc[r.servicio];const esH=r.tipo==="huesped";
       return`<tr>
-        <td>${fmtFecha(r.date)}</td>
-        <td style="color:#0EA5E9;font-weight:700">${r.hora}</td>
-        <td>${sv?`${sv.icono} ${sv.nombre}`:r.servicio}</td>
-        <td>${r.nombre||"—"}</td>
+        <td>${fmtFecha(r.date)}</td><td style="color:#0EA5E9;font-weight:700">${r.hora}</td>
+        <td>${sv?`${sv.icono} ${sv.nombre}`:r.servicio}</td><td>${r.nombre||"—"}</td>
         <td><span style="background:${esH?"#06B6D420":"#EC489920"};color:${esH?"#06B6D4":"#EC4899"};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700">${esH?"HUÉSPED":"EXTERNO"}</span></td>
-        <td style="text-align:center">${r.adultos||0}</td>
-        <td style="text-align:center">${r.ninos||0}</td>
+        <td style="text-align:center">${r.adultos||0}</td><td style="text-align:center">${r.ninos||0}</td>
         <td style="text-align:right;color:${esH?"#06B6D4":"#10B981"};font-weight:700">${esH?"CORTESÍA":fmt(parseInt(r.total)||0)}</td>
         <td>${r.pago||"—"}</td>
-        <td><span style="background:${r.estado==="activo"?"#EF444420":r.estado==="confirmado"?"#10B98120":"#64748B20"};color:${r.estado==="activo"?"#EF4444":r.estado==="confirmado"?"#10B981":"#64748B"};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700">${(r.estado||"").toUpperCase()}</span></td>
-      </tr>`;
+        <td><span style="background:#10B98120;color:#10B981;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700">${(r.estado||"").toUpperCase()}</span></td></tr>`;
     }).join("");
 
-    // Desglose por método de pago
-    const pagoMethods=["efectivo","tarjeta","transferencia","cortesia","pendiente"];
-    const pagoLabels={efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía",pendiente:"⏳ Pendiente"};
-    const pagoColors={efectivo:"#10B981",tarjeta:"#8B5CF6",transferencia:"#0EA5E9",cortesia:"#06B6D4",pendiente:"#F59E0B"};
-    const desglosePago=pagoMethods.map(pm=>{
-      const tot=resHabF.filter(r=>r.pago===pm).reduce((a,r)=>{
-        const h2=habitaciones.find(x=>x.num===String(r.hab||"").trim());
-        const tp2=(parseInt(r.adultos)||1)+(parseInt(r.ninos)||0)+(parseInt(r.mascotas)||0);
-        const n2=Math.max(1,Math.round((new Date(r.checkout)-new Date(r.checkin))/(864e5)));
-        return a+(h2?.precio||parseInt(r.precio_noche)||130000)*tp2*n2;
-      },0);
-      const cnt=resHabF.filter(r=>r.pago===pm).length;
-      return{pm,tot,cnt};
-    }).filter(x=>x.num>0);
-    // Total descuentos aplicados
+    const salonRows=resSalF.map(r=>{
+      const total=parseInt(r.total)||0;
+      const anticipo=parseInt(r.anticipo)||0;
+      const saldo=Math.max(0,total-anticipo);
+      const estColor=r.estado==="completado"?"#10B981":r.estado==="cancelado"?"#64748B":r.estado==="en_curso"?"#EF4444":"#F59E0B";
+      return`<tr>
+        <td><b>${r.cliente_nombre||"—"}</b><br/><span style="font-size:9px;color:#64748B">${r.cliente_cedula||""}</span></td>
+        <td>${EVENTO_L[r.evento]||r.evento||"—"}</td>
+        <td>${fmtFecha(r.fecha_inicio)}${r.fecha_inicio!==r.fecha_fin?` → ${fmtFecha(r.fecha_fin)}`:""}</td>
+        <td>${r.hora_inicio||"—"} – ${r.hora_fin||"—"}</td>
+        <td style="text-align:center">${r.personas||"—"}</td>
+        <td style="text-align:right;color:#10B981;font-weight:700">${fmt(total)}</td>
+        <td style="text-align:right;color:#0EA5E9">${anticipo>0?fmt(anticipo):"—"}</td>
+        <td style="text-align:right;color:${saldo>0?"#EF4444":"#10B981"};font-weight:700">${fmt(saldo)}</td>
+        <td><span style="background:${estColor}20;color:${estColor};border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700">${(r.estado||"").toUpperCase()}</span></td>
+        <td>${r.pago||"—"}</td></tr>`;
+    }).join("");
+
     const totalDescuentos=resHabF.reduce((a,r)=>a+(parseInt(r.descuento_valor)||0),0);
-    // Logo
     const _logoRpt=localStorage.getItem("hotelcala_logo")||"";
     const _nombreRpt=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
 
@@ -1515,21 +1514,24 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
       .sub{font-size:10px;color:#64748B;letter-spacing:1px;margin-bottom:4px;}
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0EA5E9;padding-bottom:14px;margin-bottom:20px;}
       .periodo{font-size:13px;font-weight:700;color:#1e293b;}
-      .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-      .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;}
-      .kpi .val{font-size:18px;font-weight:800;color:#0EA5E9;}
+      .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+      .kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:11px;}
+      .kpi .val{font-size:17px;font-weight:800;color:#0EA5E9;}
       .kpi .lbl{font-size:9px;color:#64748B;margin-top:2px;}
-      .desglose{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
-      .pago-badge{border-radius:7px;padding:8px 14px;font-size:11px;font-weight:700;border:1px solid;}
-      h2{font-size:13px;font-weight:700;margin-bottom:10px;color:#0f172a;}
-      table{width:100%;border-collapse:collapse;margin-bottom:28px;font-size:11px;}
-      th{background:#0f172a;color:#e2e8f0;padding:8px 9px;font-size:9px;text-align:left;font-weight:700;letter-spacing:.4px;}
-      td{padding:7px 9px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+      h2{font-size:13px;font-weight:700;margin:18px 0 8px;color:#0f172a;padding:6px 10px;border-radius:6px;}
+      h2.hab{background:#0EA5E915;border-left:3px solid #0EA5E9;}
+      h2.zon{background:#06B6D415;border-left:3px solid #06B6D4;}
+      h2.sal{background:#7C3AED15;border-left:3px solid #7C3AED;color:#7C3AED;}
+      table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:10px;}
+      th{background:#0f172a;color:#e2e8f0;padding:7px 8px;font-size:9px;text-align:left;font-weight:700;letter-spacing:.4px;}
+      th.sal-h{background:#3B0764;color:#E9D5FF;}
+      td{padding:6px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
       tr:nth-child(even) td{background:#f8fafc;}
-      .footer{border-top:1px solid #e2e8f0;padding-top:12px;text-align:center;font-size:9px;color:#94A3B8;}
+      .footer{border-top:1px solid #e2e8f0;padding-top:12px;text-align:center;font-size:9px;color:#94A3B8;margin-top:20px;}
       .no-print{background:#f0f9ff;border:1.5px solid #0EA5E9;border-radius:8px;padding:10px 14px;margin-bottom:18px;font-size:11px;color:#0369a1;display:flex;justify-content:space-between;align-items:center;}
       .btn{background:#0EA5E9;color:white;border:none;border-radius:6px;padding:8px 18px;font-size:11px;font-weight:700;cursor:pointer;}
-      @media print{.no-print{display:none!important;} body{padding:16px;}}
+      .empty{color:#94A3B8;font-size:11px;padding:12px 0;margin-bottom:16px;}
+      @media print{.no-print{display:none!important;}body{padding:16px;}}
     </style></head><body>
     <div class="no-print">
       <span>📊 <b>Reporte ${_nombreRpt}</b> · ${periodoLabel} · Generado el ${fmtHoy}</span>
@@ -1538,41 +1540,35 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
     <div class="header">
       <div style="display:flex;align-items:center;gap:12px">
         ${_logoRpt?`<img src="${_logoRpt}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid #e2e8f0"/>`:``}
-        <div>
-          <h1>${_nombreRpt}</h1>
-          <div class="sub">REPORTE DE GESTIÓN · GENERADO ${fmtHoy}</div>
-        </div>
+        <div><h1>${_nombreRpt}</h1><div class="sub">REPORTE DE GESTIÓN · GENERADO ${fmtHoy}</div></div>
       </div>
       <div style="text-align:right"><div class="periodo">📅 ${periodoLabel}</div><div style="font-size:10px;color:#64748B;margin-top:3px">${desde} al ${hasta}</div></div>
     </div>
     <div class="kpis">
-      <div class="kpi"><div class="val">${fmt(ingHab)}</div><div class="lbl">💰 Ingresos habitaciones</div></div>
+      <div class="kpi"><div class="val">${fmt(ingHab)}</div><div class="lbl">🏠 Ingresos habitaciones</div></div>
       <div class="kpi"><div class="val">${fmt(ingZonas)}</div><div class="lbl">🌊 Ingresos zonas (ext.)</div></div>
-      <div class="kpi"><div class="val">${fmt(ingHab+ingZonas)}</div><div class="lbl">📊 Total ingresos</div></div>
-      <div class="kpi"><div class="val" style="color:#EF4444">${fmt(pendHab)}</div><div class="lbl">⏳ Saldos pendientes hab.</div></div>
+      <div class="kpi"><div class="val" style="color:#7C3AED">${fmt(ingSalon)}</div><div class="lbl">🎉 Ingresos salón</div></div>
+      <div class="kpi"><div class="val" style="color:#10B981">${fmt(totalIngresos)}</div><div class="lbl">📊 Total general</div></div>
     </div>
-    ${desglosePago.length>0?`
-    <div style="margin-bottom:6px;font-size:10px;font-weight:700;color:#64748B;letter-spacing:.5px">💳 DESGLOSE POR MÉTODO DE PAGO</div>
-    <div class="desglose">
-      ${desglosePago.map(({pm,tot,cnt})=>`
-        <div class="pago-badge" style="background:${pagoColors[pm]||"#64748B"}15;border-color:${pagoColors[pm]||"#64748B"}44;color:${pagoColors[pm]||"#64748B"}">
-          ${pagoLabels[pm]||pm} · ${cnt} reserva${cnt>1?"s":""} · <b>${fmt(tot)}</b>
-        </div>`).join("")}
-      ${totalDescuentos>0?`<div class="pago-badge" style="background:#EC489915;border-color:#EC489944;color:#EC4899">🏷️ Descuentos · <b>- ${fmt(totalDescuentos)}</b></div>`:""}
+    ${pendHab>0||pendSalon>0?`
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      ${pendHab>0?`<div style="background:#EF444415;border:1px solid #EF444444;border-radius:7px;padding:8px 14px;font-size:11px;color:#EF4444;font-weight:700">⏳ Saldo pend. habitaciones: ${fmt(pendHab)}</div>`:""}
+      ${pendSalon>0?`<div style="background:#7C3AED15;border:1px solid #7C3AED44;border-radius:7px;padding:8px 14px;font-size:11px;color:#7C3AED;font-weight:700">⏳ Saldo pend. salón: ${fmt(pendSalon)}</div>`:""}
+      ${totalDescuentos>0?`<div style="background:#EC489915;border:1px solid #EC489944;border-radius:7px;padding:8px 14px;font-size:11px;color:#EC4899;font-weight:700">🏷️ Descuentos aplicados: ${fmt(totalDescuentos)}</div>`:""}
     </div>`:""}
-    ${repTab==="hab"||true?`
-    <h2>🏠 Reservas de Habitaciones (${resHabF.length})</h2>
+    <h2 class="hab">🏠 Reservas de Habitaciones (${resHabF.length})</h2>
     ${resHabF.length>0?`<table>
       <thead><tr><th>Hab.</th><th>Huésped</th><th>Check-in</th><th>Check-out</th><th>Noches</th><th>Pers.</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Estado</th><th>Pago</th></tr></thead>
-      <tbody>${habRows}</tbody>
-    </table>`:`<p style="color:#64748B;margin-bottom:20px">Sin reservas de habitaciones en este período.</p>`}
-    <h2>🌊 Reservas de Zonas Húmedas (${resF.length})</h2>
-    ${resF.length>0?`<table>
+      <tbody>${habRows}</tbody></table>`:`<p class="empty">Sin reservas de habitaciones en este período.</p>`}
+    <h2 class="zon">🌊 Reservas de Zonas Húmedas (${resZonF.length})</h2>
+    ${resZonF.length>0?`<table>
       <thead><tr><th>Fecha</th><th>Hora</th><th>Servicio</th><th>Cliente</th><th>Tipo</th><th>Adultos</th><th>Niños</th><th>Total</th><th>Pago</th><th>Estado</th></tr></thead>
-      <tbody>${zonasRows}</tbody>
-    </table>`:`<p style="color:#64748B;margin-bottom:20px">Sin reservas de zonas húmedas en este período.</p>`}
-    `:``}
-    <div class="footer">Hotel Cala · Reporte generado el ${fmtHoy} · Período: ${periodoLabel} · Total registros: ${resHabF.length+resF.length}</div>
+      <tbody>${zonasRows}</tbody></table>`:`<p class="empty">Sin reservas de zonas húmedas en este período.</p>`}
+    <h2 class="sal">🎉 Reservas de Salón de Eventos (${resSalF.length})</h2>
+    ${resSalF.length>0?`<table>
+      <thead><tr><th class="sal-h">Cliente</th><th class="sal-h">Evento</th><th class="sal-h">Fecha</th><th class="sal-h">Horario</th><th class="sal-h">Pers.</th><th class="sal-h">Total</th><th class="sal-h">Anticipo</th><th class="sal-h">Saldo</th><th class="sal-h">Estado</th><th class="sal-h">Pago</th></tr></thead>
+      <tbody>${salonRows}</tbody></table>`:`<p class="empty">Sin reservas de salón en este período.</p>`}
+    <div class="footer">Hotel Cala · Reporte generado el ${fmtHoy} · Período: ${periodoLabel} · Total registros: ${resHabF.length+resZonF.length+resSalF.length}</div>
     <script>window.onload=()=>window.print();<\/script>
     </body></html>`);
     w.document.close();
@@ -1586,10 +1582,11 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
           <button onClick={onClose} style={{background:C.border,border:"none",color:C.subtle,borderRadius:6,width:26,height:26,cursor:"pointer",fontSize:15}}>×</button>
         </div>
         <div style={{padding:18,display:"flex",flexDirection:"column",gap:14}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
             {[
-              {l:"Reservas Hab.",v:reservasHab.filter(r=>r.checkin>=desde&&r.checkin<=hasta).length,c:C.accent,i:"🏠"},
-              {l:"Reservas Zonas",v:reservas.filter(r=>r.date>=desde&&r.date<=hasta).length,c:C.teal,i:"🌊"},
+              {l:"Reservas Hab.",v:resHabF.length,c:C.accent,i:"🏠"},
+              {l:"Reservas Zonas",v:resZonF.length,c:C.teal,i:"🌊"},
+              {l:"Reservas Salón",v:resSalF.length,c:"#7C3AED",i:"🎉"},
             ].map((k,i)=>(
               <div key={i} style={{background:C.surface,borderRadius:9,padding:12,border:`1px solid ${k.c}22`,textAlign:"center"}}>
                 <div style={{fontSize:22,marginBottom:4}}>{k.i}</div>
@@ -1598,12 +1595,12 @@ function ModalReporteImpresion({reservasHab,reservas,huespedes,habitaciones,svc,
               </div>
             ))}
           </div>
-          <div style={{background:`${C.accent}12`,border:`1px solid ${C.accent}33`,borderRadius:8,padding:"9px 12px",fontSize:10,color:C.accent}}>
-            📋 Se generará un reporte completo con <b>habitaciones + zonas húmedas</b> del período seleccionado, listo para imprimir o guardar como PDF.
+          <div style={{background:"#7C3AED12",border:"1px solid #7C3AED33",borderRadius:8,padding:"9px 12px",fontSize:10,color:"#A78BFA"}}>
+            📋 El reporte incluye <b>habitaciones + zonas húmedas + salón de eventos</b> del período seleccionado.
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
             <button onClick={onClose} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,padding:10,color:C.muted,fontSize:12,fontWeight:700,cursor:"pointer"}}>Cancelar</button>
-            <button onClick={()=>{imprimir();onClose();}} style={{background:`linear-gradient(135deg,${C.accent},${C.accent2})`,border:"none",borderRadius:7,padding:10,color:"white",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            <button onClick={()=>{imprimir();onClose();}} style={{background:`linear-gradient(135deg,#7C3AED,${C.accent})`,border:"none",borderRadius:7,padding:10,color:"white",fontSize:12,fontWeight:700,cursor:"pointer"}}>
               🖨️ Generar e Imprimir
             </button>
           </div>
@@ -2746,7 +2743,7 @@ function App(){
       {delHuesped&&<ModalDel reserva={{...delHuesped,nombre:`${delHuesped.nombre} ${delHuesped.apellidos}`,total:0}} onOk={delHuespedFn} onClose={()=>setDelHuesped(null)} svc={svc} saving={saving}/>}
       {reciboItem&&<ModalRecibo item={reciboItem.item} tipo={reciboItem.tipo} onClose={()=>setReciboItem(null)} onEmail={()=>{setEmailModal(reciboItem);setReciboItem(null);}} svc={svc} huespedes={huespedes} habitaciones={habitaciones}/>}
       {emailModal&&<ModalEmailBaucher item={emailModal.item} tipo={emailModal.tipo} onClose={()=>setEmailModal(null)} svc={svc} huespedes={huespedes} habitaciones={habitaciones} showToast={showToast}/>}
-      {reportePrintModal&&<ModalReporteImpresion reservasHab={reservasHab} reservas={reservas} huespedes={huespedes} habitaciones={habitaciones} svc={svc} repFiltro={repFiltro} repDesde={repDesde} repHasta={repHasta} repTab={repTab} onClose={()=>setReportePrintModal(false)}/>}
+      {reportePrintModal&&<ModalReporteImpresion reservasHab={reservasHab} reservas={reservas} huespedes={huespedes} habitaciones={habitaciones} svc={svc} repFiltro={repFiltro} repDesde={repDesde} repHasta={repHasta} repTab={repTab} reservasSalon={reservasSalon} onClose={()=>setReportePrintModal(false)}/>}
       {delReporte&&<ModalDel reserva={{...delReporte,nombre:delReporte.tipo_del==="hab"?(huespedes.find(h=>h.id===delReporte.huesped_id)?.nombre||"—"):(delReporte.nombre||"—")}} onOk={async()=>{setSaving(true);try{if(gasConfigured()){const action=delReporte.tipo_del==="hab"?"eliminarReservaHab":"eliminarReserva";const res=await gasPost({action,id:delReporte.id});if(res.ok){delReporte.tipo_del==="hab"?setResHab(p=>p.filter(r=>r.id!==delReporte.id)):setRes(p=>p.filter(r=>r.id!==delReporte.id));showToast("Registro eliminado","err");}}else{delReporte.tipo_del==="hab"?setResHab(p=>p.filter(r=>r.id!==delReporte.id)):setRes(p=>p.filter(r=>r.id!==delReporte.id));showToast("Eliminado (demo)","err");}setDelReporte(null);}catch{showToast("Error","err");}finally{setSaving(false);}}} onClose={()=>setDelReporte(null)} svc={svc} saving={saving}/>}
       {checkoutItem&&<ModalCheckout reserva={checkoutItem} huespedes={huespedes} habitaciones={habitaciones} saving={saving} onCheckout={hacerCheckout} onClose={()=>setCheckoutItem(null)} onRecibo={(r)=>{setCheckoutItem(null);setReciboItem({item:r,tipo:"hab"});}}/>}
 
@@ -3889,6 +3886,7 @@ function App(){
               }
 
               /* ═══ PESTAÑA ZONAS HÚMEDAS ═══ */
+              if(repTab==="zonas"){
               const resF=reservas.filter(r=>r.date>=desde&&r.date<=hasta);
               const ingZonas=resF.filter(r=>r.pago!=="pendiente"&&r.pago!=="cortesia").reduce((a,r)=>a+(parseInt(r.total)||0),0);
               const pendZonas=resF.filter(r=>r.pago==="pendiente").reduce((a,r)=>a+(parseInt(r.total)||0),0);
@@ -3988,8 +3986,10 @@ function App(){
                 )}
                 {resF.length===0&&<div style={{textAlign:"center",padding:32,color:C.muted,background:C.card,borderRadius:11}}><div style={{fontSize:32,marginBottom:8}}>🌊</div>Sin reservas de zonas húmedas en este período</div>}
               </>);
+              } // fin if zonas
 
               /* ═══ PESTAÑA SALÓN DE EVENTOS ═══ */
+              if(repTab==="salon"){
               const EVENTO_LABELS_R={boda:"💍 Boda",cumpleanos:"🎂 Cumpleaños",empresa:"🏢 Empresarial",graduacion:"🎓 Graduación",conferencia:"🎤 Conferencia",reunion:"📋 Reunión",otro:"🎪 Otro"};
               const EST_SAL_R={reservado:{l:"RESERVADO",c:C.yellow},confirmado:{l:"CONFIRMADO",c:C.accent},en_curso:{l:"EN CURSO",c:C.red},completado:{l:"COMPLETADO",c:C.green},cancelado:{l:"CANCELADO",c:C.muted}};
               const resSalF=reservasSalon.filter(r=>r.fecha_inicio>=desde&&r.fecha_inicio<=hasta);
@@ -4114,6 +4114,7 @@ function App(){
                   </div>
                 ):<div style={{textAlign:"center",padding:32,color:C.muted,background:C.card,borderRadius:11}}><div style={{fontSize:32,marginBottom:8}}>🎉</div>Sin reservas de salón en este período</div>}
               </>);
+              } // fin if salon
             })()}
           </div>
         )}
