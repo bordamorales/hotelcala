@@ -3023,7 +3023,7 @@ function App(){
                           <span style={{color:C.subtle,fontSize:10}}>{ocu}/{sv.capacidad}</span>
                           <span style={{color:pct>75?C.red:pct>50?C.yellow:C.green,fontWeight:700,fontSize:10}}>{Math.round(pct)}%</span>
                         </div>
-                        <div style={{background:"#1e293b",borderRadius:3,height:5}}>
+                        <div style={{background:C.dim,borderRadius:3,height:5}}>
                           <div style={{height:"100%",borderRadius:3,background:pct>75?C.red:pct>50?C.yellow:C.green,width:`${pct}%`,transition:"width 1s"}}/>
                         </div>
                         <div style={{marginTop:5,fontSize:9,color:pct>=100?C.red:C.green,fontWeight:700}}>{pct>=100?"🔴 LLENO":`✓ ${sv.capacidad-ocu} cupos`}</div>
@@ -3095,7 +3095,7 @@ function App(){
                       const dias=diasOcupada(rh);
                       const enCheckoutRapido=checkoutRapidoId===rh?.id;
                       return(
-                        <div key={h.num} style={{background:esOcupada?"#1a0a0a":esProxima?"#1a1600":C.card,borderRadius:10,padding:11,border:`2px solid ${cardColor}${esOcupada||esProxima?"88":"22"}`,transition:"all .15s",position:"relative"}}>
+                        <div key={h.num} style={{background:esOcupada?C.card2:esProxima?C.card2:C.card,borderRadius:10,padding:11,border:`2px solid ${cardColor}${esOcupada||esProxima?"88":"22"}`,transition:"all .15s",position:"relative"}}>
                           {/* Click área */}
                           <div style={{cursor:"pointer"}} onClick={()=>{if(rh){setEditHab(rh);setModalHab(true);}else if(proxima){setEditHab(proxima);setModalHab(true);}else{setEditHab(null);setModalHab(true);}}}>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
@@ -3168,9 +3168,9 @@ function App(){
                       // Recalcular total siempre con la fórmula correcta
                       const totalCalculado=precioPorPersona*totalPag*noches;
                       return(
-                        <tr key={r.id} style={{background:idx%2===0?"transparent":"#0a1120"}}
+                        <tr key={r.id} style={{background:idx%2===0?"transparent":C.card2}}
                           onMouseEnter={e=>e.currentTarget.style.background=C.border+"22"}
-                          onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":"#0a1120"}>
+                          onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":C.card2}>
                           <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}><span style={{color:C.accent,fontWeight:700,fontSize:11}}>{r.hab}</span><br/><span style={{color:C.muted,fontSize:9,textTransform:"capitalize"}}>{hab?.tipo}</span></td>
                           <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}>
                             <div style={{fontSize:11,fontWeight:600}}>{h?.nombre} {h?.apellidos}</div>
@@ -3273,9 +3273,9 @@ function App(){
                       const rh=reservasHab.find(r=>r.huesped_id===h.id&&r.checkin<=todayKey&&r.checkout>todayKey&&(r.estado==="ocupada"||r.estado==="reservada"));
                       const zonasH=reservas.filter(r=>String(r.cedula||"")===String(h.cedula||"")&&r.date===todayKey).length;
                       return(
-                        <tr key={h.id} style={{background:idx%2===0?"transparent":"#0a1120"}}
+                        <tr key={h.id} style={{background:idx%2===0?"transparent":C.card2}}
                           onMouseEnter={e=>e.currentTarget.style.background=C.border+"22"}
-                          onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":"#0a1120"}>
+                          onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":C.card2}>
                           <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`,fontFamily:"monospace",color:C.muted,fontSize:10}}>{h.cedula}</td>
                           <td style={{padding:"7px 10px",fontWeight:600,fontSize:11,borderBottom:`1px solid ${C.border}10`}}>{h.nombre}</td>
                           <td style={{padding:"7px 10px",fontSize:11,borderBottom:`1px solid ${C.border}10`}}>{h.apellidos}</td>
@@ -3394,9 +3394,9 @@ function App(){
                     {filtered.sort((a,b)=>a.date>b.date?1:a.date<b.date?-1:hMin(a.hora||"0:0")-hMin(b.hora||"0:0")).map((r,idx)=>{
                       const sv=svc[r.servicio];
                       return(
-                        <tr key={r.id} style={{background:idx%2===0?"transparent":"#0a1120"}}
+                        <tr key={r.id} style={{background:idx%2===0?"transparent":C.card2}}
                           onMouseEnter={e=>e.currentTarget.style.background=C.border+"22"}
-                          onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":"#0a1120"}>
+                          onMouseLeave={e=>e.currentTarget.style.background=idx%2===0?"transparent":C.card2}>
                           <td style={{padding:"7px 10px",color:C.muted,fontSize:9,borderBottom:`1px solid ${C.border}10`}}>{String(r.id).slice(-5)}</td>
                           <td style={{padding:"7px 10px",borderBottom:`1px solid ${C.border}10`}}>
                             <div style={{fontSize:10,fontWeight:600,whiteSpace:"nowrap"}}>{fmtFecha(r.date)}</div>
@@ -3873,7 +3873,7 @@ function App(){
                               const ec=EST_HAB[r.estado]||{l:r.estado,c:C.muted};
                               const pc=PAGO_T[r.pago]||{l:r.pago||"—",c:C.muted};
                               return(
-                                <tr key={r.id} style={{background:idx%2===0?"transparent":"#0a1120"}}>
+                                <tr key={r.id} style={{background:idx%2===0?"transparent":C.card2}}>
                                   <td style={{padding:"6px 10px",fontSize:11,fontWeight:700,color:C.accent,borderBottom:`1px solid ${C.border}10`}}>{r.hab}</td>
                                   <td style={{padding:"6px 10px",fontSize:10,borderBottom:`1px solid ${C.border}10`}}><div style={{fontWeight:600}}>{hg?.nombre} {hg?.apellidos}</div><div style={{color:C.muted,fontSize:9}}>📞 {hg?.telefono}</div></td>
                                   <td style={{padding:"6px 10px",fontSize:10,borderBottom:`1px solid ${C.border}10`}}>{fmtFecha(r.checkin)}</td>
@@ -3945,7 +3945,7 @@ function App(){
                           <span style={{color:sv.color,fontWeight:700,fontSize:11}}>{sv.icono} {sv.nombre}</span>
                           <span style={{fontWeight:700,fontSize:11}}>{fmt(ing)}</span>
                         </div>
-                        <div style={{background:"#1e293b",borderRadius:3,height:6}}>
+                        <div style={{background:C.dim,borderRadius:3,height:6}}>
                           <div style={{height:"100%",borderRadius:3,background:`linear-gradient(90deg,${sv.color},${sv.color}88)`,width:`${(ing/maxI)*100}%`,transition:"width .8s"}}/>
                         </div>
                         <div style={{display:"flex",gap:10,marginTop:3}}>
@@ -3979,7 +3979,7 @@ function App(){
                             const esHuésped=r.tipo==="huesped";
                             const pc=PAGO_T[r.pago]||{l:r.pago||"—",c:C.muted};
                             return(
-                              <tr key={r.id} style={{background:idx%2===0?"transparent":"#0a1120"}}>
+                              <tr key={r.id} style={{background:idx%2===0?"transparent":C.card2}}>
                                 <td style={{padding:"6px 10px",fontSize:10,borderBottom:`1px solid ${C.border}10`}}>{fmtFecha(r.date)}</td>
                                 <td style={{padding:"6px 10px",fontSize:10,color:C.accent,fontWeight:700,borderBottom:`1px solid ${C.border}10`}}>{r.hora}</td>
                                 <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}>{sv&&<Tag text={`${sv.icono} ${sv.nombre}`} color={sv.color}/>}</td>
@@ -4104,7 +4104,7 @@ function App(){
                             const ec=EST_SAL_R[r.estado]||{l:r.estado,c:C.muted};
                             const pc=PAGO_T[r.pago]||{l:r.pago||"—",c:C.muted};
                             return(
-                              <tr key={r.id} style={{background:idx%2===0?"transparent":"#0a1120"}}>
+                              <tr key={r.id} style={{background:idx%2===0?"transparent":C.card2}}>
                                 <td style={{padding:"6px 10px",fontSize:11,fontWeight:700,borderBottom:`1px solid ${C.border}10`}}>{r.cliente_nombre||"—"}</td>
                                 <td style={{padding:"6px 10px",fontSize:9,color:C.muted,borderBottom:`1px solid ${C.border}10`,fontFamily:"monospace"}}>{r.cliente_cedula||"—"}</td>
                                 <td style={{padding:"6px 10px",borderBottom:`1px solid ${C.border}10`}}><Tag text={EVENTO_LABELS_R[r.evento]||r.evento||"—"} color="#7C3AED"/></td>
@@ -4324,7 +4324,7 @@ function App(){
                     </thead>
                     <tbody>
                       {(cfgHabs||habitaciones).map((h,idx)=>(
-                        <tr key={h.num} style={{background:idx%2===0?"transparent":"#0a1120"}}>
+                        <tr key={h.num} style={{background:idx%2===0?"transparent":C.card2}}>
                           <td style={{padding:"7px 12px",fontWeight:700,fontSize:11,color:C.accent,borderBottom:`1px solid ${C.border}10`}}>{h.num}</td>
                           <td style={{padding:"7px 12px",fontSize:10,color:C.muted,borderBottom:`1px solid ${C.border}10`}}>{h.piso===4?"Suite":h.piso}</td>
                           <td style={{padding:"7px 12px",borderBottom:`1px solid ${C.border}10`}}><Tag text={h.tipo.toUpperCase()} color={h.piso===4?C.accent2:h.piso===3?C.teal:C.accent}/></td>
