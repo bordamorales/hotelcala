@@ -1664,13 +1664,17 @@ function ModalRecibo({item,tipo,onClose,onEmail,svc,huespedes,habitaciones}){
   const PAGO_LABELS={pendiente:"⏳ Pendiente",efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía"};
 
   const imprimir=()=>{
+    const _logo=localStorage.getItem("hotelcala_logo")||"";
+    const _nombre=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
     const w=window.open("","_blank","width=800,height=600");
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Recibo ${folio}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:'Segoe UI',sans-serif;background:#fff;color:#1e293b;padding:32px;}
-      .logo{font-size:28px;font-weight:900;letter-spacing:3px;color:#0EA5E9;margin-bottom:2px;}
-      .sub{font-size:10px;color:#64748B;letter-spacing:2px;margin-bottom:20px;}
+      .logo-area{display:flex;align-items:center;gap:12px;margin-bottom:2px;}
+      .logo-img{width:60px;height:60px;border-radius:10px;object-fit:cover;border:1px solid #e2e8f0;}
+      .logo-text{font-size:22px;font-weight:900;letter-spacing:3px;color:#0EA5E9;}
+      .sub{font-size:10px;color:#64748B;letter-spacing:2px;margin-top:2px;}
       .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0EA5E9;padding-bottom:16px;margin-bottom:20px;}
       .folio{text-align:right;}.folio .num{font-size:20px;font-weight:800;color:#0EA5E9;}
       .folio .fecha{font-size:11px;color:#64748B;margin-top:3px;}
@@ -1690,7 +1694,15 @@ function ModalRecibo({item,tipo,onClose,onEmail,svc,huespedes,habitaciones}){
       @media print{body{padding:16px;}button{display:none!important;}}
     </style></head><body>
     <div class="header">
-      <div><div class="logo">🌊 HOTEL CALA</div><div class="sub">SISTEMA DE GESTIÓN · RECIBO OFICIAL</div></div>
+      <div>
+        <div class="logo-area">
+          ${_logo?`<img src="${_logo}" class="logo-img" alt="logo"/>`:""}
+          <div>
+            <div class="logo-text">${_nombre}</div>
+            <div class="sub">RECIBO OFICIAL DE PAGO</div>
+          </div>
+        </div>
+      </div>
       <div class="folio"><div class="num">${folio}</div><div class="fecha">Fecha: ${fmtHoy}</div></div>
     </div>
     <div class="section">
@@ -1974,18 +1986,26 @@ function ModalReciboSalon({item,onClose}){
   const anticipo=parseInt(item.anticipo)||0;
   const saldo=Math.max(0,total-anticipo);
   const imprimir=()=>{
+    const _logo=localStorage.getItem("hotelcala_logo")||"";
+    const _nombre=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
     const w=window.open("","_blank");
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo Salón — ${folio}</title>
     <style>body{font-family:Arial,sans-serif;max-width:480px;margin:32px auto;color:#1e293b;padding:0 16px;}
     .hdr{text-align:center;border-bottom:3px solid #7C3AED;padding-bottom:14px;margin-bottom:18px;}
-    .logo{font-size:32px;}.brand{font-size:20px;font-weight:900;color:#7C3AED;letter-spacing:2px;}
+    .logo-wrap{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px;}
+    .logo-img{width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid #e2e8f0;}
+    .brand{font-size:20px;font-weight:900;color:#7C3AED;letter-spacing:2px;}
     .folio{font-size:11px;color:#64748B;margin-top:4px;}.row{display:flex;justify-content:space-between;margin:4px 0;font-size:12px;}
     .label{color:#64748B;}.val{font-weight:600;}.total-row{border-top:2px solid #e2e8f0;margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;font-size:16px;font-weight:900;}
     .total-val{color:#10B981;}.saldo-val{color:#EF4444;}.section{margin:14px 0;}.stitle{font-size:10px;font-weight:700;color:#64748B;letter-spacing:.8px;margin-bottom:6px;text-transform:uppercase;}
     .badge{display:inline-block;background:#7C3AED20;color:#7C3AED;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;}
     .footer{text-align:center;margin-top:28px;font-size:10px;color:#94A3B8;border-top:1px solid #e2e8f0;padding-top:12px;}
     @media print{body{margin:0;padding:0;max-width:none;}</style></head><body>
-    <div class="hdr"><div class="logo">🌊</div><div class="brand">HOTEL CALA</div><div class="folio">RECIBO SALÓN DE EVENTOS · ${folio} · ${fmtHoy}</div></div>
+    <div class="hdr">
+      <div class="logo-wrap">${_logo?`<img src="${_logo}" class="logo-img" alt="logo"/>`:"🌊"}
+        <div class="brand">${_nombre}</div></div>
+      <div class="folio">RECIBO SALÓN DE EVENTOS · ${folio} · ${fmtHoy}</div>
+    </div>
     <div class="section"><div class="stitle">Cliente</div>
     <div class="row"><span class="label">Nombre:</span><span class="val">${item.cliente_nombre||"—"}</span></div>
     ${item.cliente_cedula?`<div class="row"><span class="label">Cédula/NIT:</span><span class="val">${item.cliente_cedula}</span></div>`:""}
@@ -4250,24 +4270,48 @@ function App(){
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <h2 style={{margin:0,fontSize:15,fontWeight:700}}>🏠 Precios y Capacidad de Habitaciones</h2>
-                {cfgHabs&&<button onClick={async()=>{
-                  setSaving(true);
-                  try{
-                    const updated=cfgHabs.map(h=>({...h,precio:parseInt(h.precio)||0,capacidad:parseInt(h.capacidad)||1}));
-                    if(gasConfigured()){
-                      // Guardar cada habitación en Sheets via GAS
-                      const res=await gasPost({action:"guardarHabitaciones",habitaciones:updated});
-                      if(res.ok){setHabitaciones(updated);setCfgHabs(null);showToast("✅ Precios guardados en Sheets");}
-                      else showToast("Error al guardar: "+(res.msg||""),"err");
-                    }else{
-                      setHabitaciones(updated);setCfgHabs(null);showToast("Habitaciones actualizadas (demo)");
-                    }
-                  }catch{showToast("Error de conexión","err");}
-                  finally{setSaving(false);}
-                }} disabled={saving} style={{background:`linear-gradient(135deg,${C.green},#059669)`,border:"none",borderRadius:7,padding:"8px 15px",color:"white",fontWeight:700,cursor:saving?"wait":"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
-                  {saving&&<Spinner size={12} color="white"/>}✓ Guardar en Sheets
-                </button>}
+                <div style={{display:"flex",gap:7}}>
+                  {!cfgHabs&&(
+                    <button onClick={()=>setCfgHabs(habitaciones.map(h=>({...h})))}
+                      style={{background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:7,padding:"7px 14px",color:C.accent,fontWeight:700,cursor:"pointer",fontSize:12}}>
+                      ✏️ Editar Precios
+                    </button>
+                  )}
+                  {cfgHabs&&(
+                    <>
+                      <button onClick={()=>setCfgHabs(null)}
+                        style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 14px",color:C.muted,fontWeight:700,cursor:"pointer",fontSize:12}}>
+                        Cancelar
+                      </button>
+                      <button onClick={async()=>{
+                        setSaving(true);
+                        try{
+                          const updated=cfgHabs.map(h=>({...h,precio:parseInt(h.precio)||0,capacidad:parseInt(h.capacidad)||1}));
+                          if(gasConfigured()){
+                            const res=await gasPost({action:"guardarHabitaciones",habitaciones:updated});
+                            if(res.ok){
+                              setHabitaciones(updated);
+                              setCfgHabs(null);
+                              showToast("✅ Precios guardados correctamente");
+                              setTimeout(()=>cargarDatos(true),1500);
+                            }else showToast("Error al guardar: "+(res.msg||""),"err");
+                          }else{
+                            setHabitaciones(updated);setCfgHabs(null);showToast("Habitaciones actualizadas (demo)");
+                          }
+                        }catch{showToast("Error de conexión","err");}
+                        finally{setSaving(false);}
+                      }} disabled={saving} style={{background:`linear-gradient(135deg,${C.green},#059669)`,border:"none",borderRadius:7,padding:"7px 14px",color:"white",fontWeight:700,cursor:saving?"wait":"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
+                        {saving&&<Spinner size={12} color="white"/>}💾 Guardar en Sheets
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
+              {cfgHabs&&(
+                <div style={{background:C.yellow+"12",border:`1px solid ${C.yellow}33`,borderRadius:7,padding:"7px 12px",fontSize:10,color:C.yellow,marginBottom:10}}>
+                  ✏️ Modo edición activo — modifica los precios y capacidades, luego presiona <b>Guardar en Sheets</b>
+                </div>
+              )}
               <div style={{background:C.card,borderRadius:11,border:`1px solid ${C.border}`,overflow:"hidden"}}>
                 <div style={{overflowX:"auto"}}>
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
