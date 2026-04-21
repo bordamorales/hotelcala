@@ -1617,19 +1617,34 @@ function ModalRecibo({item,tipo,onClose,onEmail,svc,huespedes,habitaciones}){
   const printRef=React.useRef();
   const hoy=new Date();
   const fmtHoy=`${String(hoy.getDate()).padStart(2,"0")}/${String(hoy.getMonth()+1).padStart(2,"0")}/${hoy.getFullYear()}`;
-  const folio=`HC-${tipo==="hab"?"HAB":"ZON"}-${String(item.id).slice(-6).toUpperCase()}`;
+
+  // Folio secuencial — usa localStorage para llevar el contador
+  const folio=useMemo(()=>{
+    const key="hotelcala_folio_counter";
+    const n=(parseInt(localStorage.getItem(key)||"0"))+1;
+    localStorage.setItem(key,String(n));
+    const prefix=tipo==="hab"?"HAB":"ZON";
+    return`HC-${prefix}-${String(n).padStart(4,"0")}`;
+  },[]);
+
+  // Datos del huésped completos
+  const huesped=tipo==="hab"?huespedes.find(x=>x.id===item.huesped_id):null;
+
+  // Acompañantes
+  let acompanantes=[];
+  try{acompanantes=item.acompanantes?JSON.parse(item.acompanantes):[];}catch{}
 
   // Datos según tipo
-  let cliente="",cedula="",habitacionInfo="",servicioInfo="",detalles=[],totalVal=0,anticipoVal=0,saldoVal=0,pagoInfo="";
+  let cliente="",cedula="",tipoDoc="",habitacionInfo="",servicioInfo="",detalles=[],totalVal=0,anticipoVal=0,saldoVal=0,pagoInfo="";
   if(tipo==="hab"){
-    const h=huespedes.find(x=>x.id===item.huesped_id);
     const hab=habitaciones.find(x=>x.num===item.hab);
     const ad=parseInt(item.adultos)||1,ni=parseInt(item.ninos)||0,ma=parseInt(item.mascotas)||0;
     const tp=ad+ni+ma;
     const noches=parseInt(item.noches)||1;
     const precio=hab?.precio||parseInt(item.precio_noche)||0;
-    cliente=`${h?.nombre||""} ${h?.apellidos||""}`.trim()||"—";
-    cedula=h?.cedula||"—";
+    cliente=`${huesped?.nombre||""} ${huesped?.apellidos||""}`.trim()||"—";
+    cedula=huesped?.cedula||"—";
+    tipoDoc=huesped?.tipo_doc||"CC";
     habitacionInfo=`Habitación ${item.hab} · ${hab?.tipo||""} · Piso ${hab?.piso||""}`;
     totalVal=precio*tp*noches;
     anticipoVal=parseInt(item.anticipo)||0;
@@ -1647,93 +1662,135 @@ function ModalRecibo({item,tipo,onClose,onEmail,svc,huespedes,habitaciones}){
     cedula=item.cedula||"—";
     servicioInfo=`${sv.icono} ${sv.nombre} · ${item.date} · ${item.hora}–${minH(hMin(item.hora||"0:0")+60)}`;
     totalVal=parseInt(item.total)||0;
-    anticipoVal=totalVal;
-    saldoVal=0;
-    pagoInfo=item.pago||"efectivo";
-    if(item.tipo==="huesped"){
-      detalles=[{desc:`Huésped Hotel Cala · Hab. ${item.hab||"—"} · Cortesía`,val:0}];
-      totalVal=0;
-    } else {
-      detalles=[
-        ...(ad>0?[{desc:`${ad} adulto${ad>1?"s":""} × ${fmt(sv.precio_adulto)}/h`,val:ad*sv.precio_adulto}]:[]),
-        ...(ni>0?[{desc:`${ni} niño${ni>1?"s":""} × ${fmt(sv.precio_nino)}/h`,val:ni*sv.precio_nino}]:[]),
-      ];
-    }
+    anticipoVal=totalVal;saldoVal=0;pagoInfo=item.pago||"efectivo";
+    if(item.tipo==="huesped"){detalles=[{desc:`Huésped Hotel Cala · Hab. ${item.hab||"—"} · Cortesía`,val:0}];totalVal=0;}
+    else{detalles=[...(ad>0?[{desc:`${ad} adulto${ad>1?"s":""} × ${fmt(sv.precio_adulto)}/h`,val:ad*sv.precio_adulto}]:[]),...(ni>0?[{desc:`${ni} niño${ni>1?"s":""} × ${fmt(sv.precio_nino)}/h`,val:ni*sv.precio_nino}]:[])]}
   }
 
   const PAGO_LABELS={pendiente:"⏳ Pendiente",efectivo:"💵 Efectivo",tarjeta:"💳 Tarjeta",transferencia:"🏦 Transferencia",cortesia:"🎁 Cortesía"};
+  const TIPO_DOC={CC:"Cédula de Ciudadanía",TI:"Tarjeta de Identidad",CE:"Cédula de Extranjería",PA:"Pasaporte",NIT:"NIT"};
 
   const imprimir=()=>{
     const _logo=localStorage.getItem("hotelcala_logo")||"";
     const _nombre=localStorage.getItem("hotelcala_nombre")||"HOTEL CALA";
-    const w=window.open("","_blank","width=800,height=600");
+    const w=window.open("","_blank","width=850,height=700");
+
+    // Acompañantes HTML
+    const acompHTML=acompanantes.length>0?`
+      <div class="section">
+        <div class="section-title">Acompañantes (${acompanantes.length})</div>
+        <table>
+          <thead><tr><th>#</th><th>Nombre</th><th>Tipo Doc.</th><th>Documento</th></tr></thead>
+          <tbody>
+            ${acompanantes.map((a,i)=>`<tr>
+              <td style="text-align:center;color:#64748B">${i+1}</td>
+              <td style="font-weight:600">${a.nombre||"—"}</td>
+              <td style="color:#64748B">${TIPO_DOC[a.tipo_doc]||a.tipo_doc||"—"}</td>
+              <td style="font-family:monospace">${a.documento||"—"}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`:"";
+
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Recibo ${folio}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:'Segoe UI',sans-serif;background:#fff;color:#1e293b;padding:32px;}
-      .logo-area{display:flex;align-items:center;gap:12px;margin-bottom:2px;}
-      .logo-img{width:60px;height:60px;border-radius:10px;object-fit:cover;border:1px solid #e2e8f0;}
-      .logo-text{font-size:22px;font-weight:900;letter-spacing:3px;color:#0EA5E9;}
-      .sub{font-size:10px;color:#64748B;letter-spacing:2px;margin-top:2px;}
-      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0EA5E9;padding-bottom:16px;margin-bottom:20px;}
-      .folio{text-align:right;}.folio .num{font-size:20px;font-weight:800;color:#0EA5E9;}
-      .folio .fecha{font-size:11px;color:#64748B;margin-top:3px;}
-      .section{margin-bottom:16px;}
-      .section-title{font-size:10px;font-weight:700;color:#64748B;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #e2e8f0;}
-      .info-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
-      .info-row .label{color:#64748B;}
-      .info-row .val{font-weight:600;}
-      table{width:100%;border-collapse:collapse;margin-top:8px;}
-      th{background:#f1f5f9;padding:8px 10px;font-size:10px;text-align:left;font-weight:700;color:#64748B;letter-spacing:.5px;}
-      td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f1f5f9;}
-      .total-row td{font-weight:800;font-size:14px;color:#10B981;border-top:2px solid #e2e8f0;padding-top:10px;}
-      .anticipo-row td{color:#0EA5E9;font-weight:700;}
-      .saldo-row td{color:${saldoVal>0?"#EF4444":"#10B981"};font-weight:800;font-size:13px;}
-      .footer{margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94A3B8;}
-      .badge{display:inline-block;background:#0EA5E915;color:#0EA5E9;border:1px solid #0EA5E940;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;}
+      body{font-family:'Segoe UI',sans-serif;background:#fff;color:#1e293b;padding:32px;max-width:750px;margin:0 auto;}
+      .logo-area{display:flex;align-items:center;gap:14px;}
+      .logo-img{width:64px;height:64px;border-radius:10px;object-fit:cover;border:2px solid #e2e8f0;}
+      .logo-text{font-size:24px;font-weight:900;letter-spacing:3px;color:#0EA5E9;}
+      .sub{font-size:10px;color:#64748B;letter-spacing:2px;margin-top:3px;}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0EA5E9;padding-bottom:18px;margin-bottom:22px;}
+      .folio-box{text-align:right;}
+      .folio-num{font-size:22px;font-weight:900;color:#0EA5E9;letter-spacing:1px;}
+      .folio-fecha{font-size:11px;color:#64748B;margin-top:4px;}
+      .section{margin-bottom:18px;}
+      .section-title{font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0;}
+      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;}
+      .info-row{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;gap:10px;}
+      .info-row .label{color:#64748B;white-space:nowrap;flex-shrink:0;}
+      .info-row .val{font-weight:600;text-align:right;}
+      .info-row-full{font-size:11.5px;margin-bottom:4px;display:flex;gap:8px;}
+      .info-row-full .label{color:#64748B;min-width:120px;flex-shrink:0;}
+      .info-row-full .val{font-weight:600;}
+      table{width:100%;border-collapse:collapse;margin-top:6px;font-size:11px;}
+      th{background:#f1f5f9;padding:7px 10px;font-size:9px;text-align:left;font-weight:700;color:#64748B;letter-spacing:.5px;}
+      td{padding:7px 10px;border-bottom:1px solid #f8fafc;vertical-align:middle;}
+      tr:nth-child(even) td{background:#fafafa;}
+      .total-row td{font-weight:800;font-size:14px;color:#10B981;border-top:2px solid #e2e8f0;padding-top:10px;background:white!important;}
+      .anticipo-row td{color:#0EA5E9;font-weight:700;background:white!important;}
+      .saldo-row td{color:${saldoVal>0?"#EF4444":"#10B981"};font-weight:800;font-size:13px;background:white!important;}
+      .badge{display:inline-block;background:#0EA5E915;color:#0EA5E9;border:1px solid #0EA5E940;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700;}
+      .footer{margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94A3B8;line-height:1.8;}
+      .firma-box{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+      .firma-line{border-top:1px solid #cbd5e1;padding-top:6px;font-size:9px;color:#94A3B8;text-align:center;}
       @media print{body{padding:16px;}button{display:none!important;}}
     </style></head><body>
     <div class="header">
-      <div>
-        <div class="logo-area">
-          ${_logo?`<img src="${_logo}" class="logo-img" alt="logo"/>`:""}
-          <div>
-            <div class="logo-text">${_nombre}</div>
-            <div class="sub">RECIBO OFICIAL DE PAGO</div>
-          </div>
-        </div>
+      <div class="logo-area">
+        ${_logo?`<img src="${_logo}" class="logo-img" alt="logo"/>`:""}
+        <div><div class="logo-text">${_nombre}</div><div class="sub">RECIBO OFICIAL DE PAGO</div></div>
       </div>
-      <div class="folio"><div class="num">${folio}</div><div class="fecha">Fecha: ${fmtHoy}</div></div>
+      <div class="folio-box">
+        <div class="folio-num">${folio}</div>
+        <div class="folio-fecha">Fecha: ${fmtHoy}</div>
+      </div>
     </div>
+
     <div class="section">
-      <div class="section-title">Datos del Cliente</div>
-      <div class="info-row"><span class="label">Nombre:</span><span class="val">${cliente}</span></div>
-      <div class="info-row"><span class="label">Cédula / Documento:</span><span class="val">${cedula}</span></div>
-      ${tipo==="hab"?`<div class="info-row"><span class="label">Alojamiento:</span><span class="val">${habitacionInfo}</span></div>
-      <div class="info-row"><span class="label">Check-in:</span><span class="val">${fmtFecha(item.checkin)}</span></div>
-      <div class="info-row"><span class="label">Check-out:</span><span class="val">${fmtFecha(item.checkout)}</span></div>`
-      :`<div class="info-row"><span class="label">Servicio:</span><span class="val">${servicioInfo}</span></div>`}
+      <div class="section-title">Datos del Huésped / Cliente</div>
+      <div class="info-row-full"><span class="label">Nombre completo:</span><span class="val">${cliente}</span></div>
+      <div class="info-row-full"><span class="label">${TIPO_DOC[tipoDoc]||"Documento"}:</span><span class="val">${cedula}</span></div>
+      ${huesped?.telefono?`<div class="info-row-full"><span class="label">Teléfono:</span><span class="val">${huesped.telefono}</span></div>`:""}
+      ${huesped?.correo?`<div class="info-row-full"><span class="label">Correo:</span><span class="val">${huesped.correo}</span></div>`:""}
+      ${huesped?.direccion?`<div class="info-row-full"><span class="label">Dirección:</span><span class="val">${huesped.direccion}${huesped.ciudad?`, ${huesped.ciudad}`:""}${huesped.departamento?`, ${huesped.departamento}`:""}${huesped.pais&&huesped.pais!=="Colombia"?`, ${huesped.pais}`:""}</span></div>`:""}
+      ${huesped?.es_juridica&&huesped?.razon_social?`<div class="info-row-full"><span class="label">Razón Social:</span><span class="val">${huesped.razon_social} · NIT: ${huesped.nit||"—"}</span></div>`:""}
     </div>
+
+    ${tipo==="hab"?`
+    <div class="section">
+      <div class="section-title">Datos del Alojamiento</div>
+      <div class="info-row-full"><span class="label">Habitación:</span><span class="val">${habitacionInfo}</span></div>
+      <div class="info-row-full"><span class="label">Check-in:</span><span class="val">${fmtFecha(item.checkin)}</span></div>
+      <div class="info-row-full"><span class="label">Check-out:</span><span class="val">${fmtFecha(item.checkout)}</span></div>
+      <div class="info-row-full"><span class="label">Noches:</span><span class="val">${parseInt(item.noches)||1}</span></div>
+      <div class="info-row-full"><span class="label">Ocupantes:</span><span class="val">${parseInt(item.adultos)||1} adulto${(parseInt(item.adultos)||1)>1?"s":""}${parseInt(item.ninos)>0?` · ${item.ninos} niño${parseInt(item.ninos)>1?"s":""}` : ""}${parseInt(item.mascotas)>0?` · ${item.mascotas} mascota${parseInt(item.mascotas)>1?"s":""}`:""}</span></div>
+    </div>`
+    :`<div class="section">
+      <div class="section-title">Servicio</div>
+      <div class="info-row-full"><span class="label">Detalle:</span><span class="val">${servicioInfo}</span></div>
+    </div>`}
+
     <div class="section">
       <div class="section-title">Detalle de Cobro</div>
       <table>
         <thead><tr><th>Descripción</th><th style="text-align:right">Valor</th></tr></thead>
         <tbody>
           ${detalles.map(d=>`<tr><td>${d.desc}</td><td style="text-align:right;font-weight:600">${fmt(d.val)}</td></tr>`).join("")}
-          <tr class="total-row"><td>TOTAL</td><td style="text-align:right">${fmt(totalVal)}</td></tr>
-          ${anticipoVal>0&&anticipoVal<totalVal?`<tr class="anticipo-row"><td>Anticipo / Abono</td><td style="text-align:right">− ${fmt(anticipoVal)}</td></tr>
-          <tr class="saldo-row"><td>SALDO PENDIENTE</td><td style="text-align:right">${fmt(saldoVal)}</td></tr>`:""}
+          <tr class="total-row"><td><b>TOTAL</b></td><td style="text-align:right">${fmt(totalVal)}</td></tr>
+          ${anticipoVal>0&&anticipoVal<totalVal?`
+          <tr class="anticipo-row"><td>Anticipo / Abono recibido</td><td style="text-align:right">− ${fmt(anticipoVal)}</td></tr>
+          <tr class="saldo-row"><td><b>SALDO PENDIENTE</b></td><td style="text-align:right">${fmt(saldoVal)}</td></tr>`:""}
         </tbody>
       </table>
     </div>
+
     <div class="section">
       <div class="section-title">Método de Pago</div>
       <span class="badge">${PAGO_LABELS[pagoInfo]||pagoInfo}</span>
-      ${item.notas?`<div style="margin-top:8px;font-size:11px;color:#64748B">Notas: ${item.notas}</div>`:""}
+      ${item.notas?`<div style="margin-top:8px;font-size:11px;color:#64748B;background:#f8fafc;padding:7px 10px;border-radius:5px;border-left:3px solid #cbd5e1">📝 ${item.notas}</div>`:""}
     </div>
+
+    ${acompHTML}
+
+    <div class="firma-box">
+      <div class="firma-line">Firma del huésped / cliente</div>
+      <div class="firma-line">Firma y sello ${_nombre}</div>
+    </div>
+
     <div class="footer">
-      Hotel Cala · Recibo generado el ${fmtHoy} · Folio ${folio}<br/>
-      Gracias por su preferencia 🌊
+      ${_nombre} · Recibo N° ${folio} · Generado el ${fmtHoy}<br/>
+      Gracias por su preferencia — Conserve este documento como comprobante de pago
     </div>
     <script>window.onload=()=>window.print();<\/script>
     </body></html>`);
